@@ -1,0 +1,187 @@
+{
+  "pages": [
+    {
+      "path": "pages/renovation-home/index",
+      "style": {
+        "navigationBarTitleText": "装修管理",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/renovation/index",
+      "style": {
+        "navigationBarTitleText": "装修申请",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/renovation-detail/index",
+      "style": {
+        "navigationBarTitleText": "详情",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/renovation-review/index",
+      "style": {
+        "navigationBarTitleText": "审核申请",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/renovation-approval/index",
+      "style": {
+        "navigationBarTitleText": "审批申请",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/survey-checkin/index",
+      "style": {
+        "navigationBarTitleText": "签到踏勘",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    {
+      "path": "pages/merchant-home/index",
+      "style": {
+        "navigationBarTitleText": "装修管理",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/merchant-apply-list/index",
+      "style": {
+        "navigationBarTitleText": "我的装修申请",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/merchant-apply-detail/index",
+      "style": {
+        "navigationBarTitleText": "申请详情",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/merchant-apply-new/index",
+      "style": {
+        "navigationBarTitleText": "装修申请",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/merchant-payment/index",
+      "style": {
+        "navigationBarTitleText": "缴费信息填写",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/delay-list/index",
+      "style": {
+        "navigationBarTitleText": "装修延期申请",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/delay-detail/index",
+      "style": {
+        "navigationBarTitleText": "延期申请详情",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/delay-review/index",
+      "style": {
+        "navigationBarTitleText": "延期审核",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/merchant-delay-list/index",
+      "style": {
+        "navigationBarTitleText": "延期申请",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/merchant-delay-detail/index",
+      "style": {
+        "navigationBarTitleText": "延期申请详情",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/add-item-list/index",
+      "style": { "navigationBarTitleText": "装修增项申请", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" }
+    },
+    {
+      "path": "pages/add-item-detail/index",
+      "style": { "navigationBarTitleText": "增项申请详情", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" }
+    },
+    {
+      "path": "pages/add-item-review/index",
+      "style": { "navigationBarTitleText": "增项审核", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" }
+    },
+    {
+      "path": "pages/merchant-delay-apply/index",
+      "style": {
+        "navigationBarTitleText": "新增延期申请",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    { "path": "pages/merchant-add-item-list/index", "style": { "navigationBarTitleText": "增项申请" } },
+    { "path": "pages/merchant-add-item-detail/index", "style": { "navigationBarTitleText": "增项申请详情" } },
+    { "path": "pages/merchant-add-item-new/index", "style": { "navigationBarTitleText": "新增增项申请", "navigationBarBackgroundColor": "#FFFFFF", "navigationBarTextStyle": "black" } },
+    { "path": "pages/special-list/index",   "style": { "navigationBarTitleText": "特殊作业申请", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/special-detail/index", "style": { "navigationBarTitleText": "详情",         "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/special-review/index", "style": { "navigationBarTitleText": "立即审核",     "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/merchant-special-list/index",   "style": { "navigationBarTitleText": "特殊作业申请", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/merchant-special-detail/index", "style": { "navigationBarTitleText": "详情",         "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black", "backgroundColor": "#ffffff" } },
+    { "path": "pages/merchant-special-apply/index",  "style": { "navigationBarTitleText": "新增特殊作业申请", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/merchant-daily-report/index",        "style": { "navigationBarTitleText": "每日报备",     "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/merchant-daily-report-list/index",   "style": { "navigationBarTitleText": "报备记录",     "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/merchant-daily-report-detail/index", "style": { "navigationBarTitleText": "报备详情",     "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/merchant-reinspect-apply/index",     "style": { "navigationBarTitleText": "申请复检",     "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/merchant-accept-apply/index",        "style": { "navigationBarTitleText": "验收申请",     "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/accept-list/index",   "style": { "navigationBarTitleText": "验收审核", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/accept-detail/index", "style": { "navigationBarTitleText": "验收详情", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/accept-review/index", "style": { "navigationBarTitleText": "验收审核", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/construction-home/index",   "style": { "navigationBarTitleText": "装修施工期管理", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/construction-list/index",   "style": { "navigationBarTitleText": "施工中商户",     "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/construction-detail/index", "style": { "navigationBarTitleText": "施工详情",       "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/inspect-list/index",        "style": { "navigationBarTitleText": "巡检任务",       "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/inspect-form/index",        "style": { "navigationBarTitleText": "开始巡检",       "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/inspect-detail/index",      "style": { "navigationBarTitleText": "巡检记录",       "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/rectify-list/index",        "style": { "navigationBarTitleText": "停工整改复核",   "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/rectify-detail/index",      "style": { "navigationBarTitleText": "整改详情",       "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/rectify-review/index",      "style": { "navigationBarTitleText": "停工整改复核",   "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/daily-report-list/index",   "style": { "navigationBarTitleText": "商户每日报备",   "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } },
+    { "path": "pages/daily-report-detail/index", "style": { "navigationBarTitleText": "报备详情",       "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black" } }
+  ],
+  "globalStyle": {
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F7F8FC",
+    "backgroundTextStyle": "light"
+  }
+}

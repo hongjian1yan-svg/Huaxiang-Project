@@ -1,0 +1,2498 @@
+<!DOCTYPE html>
+<!--
+╔══════════════════════════════════════════════════════════════════╗
+║         花乡二期小程序 · 装修施工期管理  开发预览                  ║
+╠══════════════════════════════════════════════════════════════════╣
+║  【文件用途】                                                     ║
+║  市场员工端「装修施工期管理」独立模块的开发预览，对应 Vue 页面：  ║
+║  · pages/construction-home/index.vue    施工期管理首页            ║
+║  · pages/construction-list/index.vue    施工中商户列表            ║
+║  · pages/construction-detail/index.vue  施工详情                  ║
+║  · pages/inspect-list/index.vue         巡检任务列表              ║
+║  · pages/inspect-form/index.vue         开始巡检/复检              ║
+║  · pages/inspect-detail/index.vue       巡检记录详情              ║
+║  · pages/rectify-list/index.vue         停工整改复核列表          ║
+║  · pages/rectify-detail/index.vue       整改详情                  ║
+║  · pages/rectify-review/index.vue       停工整改复核操作          ║
+║  · pages/daily-report-list/index.vue    商户每日报备列表          ║
+║  · pages/daily-report-detail/index.vue  报备详情                  ║
+║  对应数据：utils/construction-mock.js                             ║
+║                                                                  ║
+║  【说明】此预览为交互还原（含本地状态流转演示），Vue 实际页面    ║
+║  提交操作简化为「校验 + toast + 返回」，不做跨页数据回写，        ║
+║  与既有装修管理模块（delay-review 等）的实现方式保持一致。        ║
+╚══════════════════════════════════════════════════════════════════╝
+-->
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>装修施工期管理 - 市场员工端（预览）</title>
+    <style>
+        /* 对齐 新建文件夹/preview.html + 公共/列表/详情/表单/底部按钮设计规范 · px = rpx÷2 */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --primary: #1ABA6C; --primary-light: #E8F9F0; --primary-border: rgba(26,186,108,0.3);
+            --danger: #FA2B2D; --danger-light: rgba(250,43,45,0.08); --danger-border: rgba(250,43,45,0.3);
+            --warn: #FA8C16; --warn-light: rgba(250,140,22,0.1);
+            --info: #1890FF; --info-light: rgba(24,144,255,0.1);
+            --success: #00A73B;
+            --bg-page: #F7F8FC; --bg-card: #FFFFFF;
+            --t1: #333333; --t2: #666666; --t3: #999999; --t4: #CCCCCC;
+            --border: #E7E7E7; --divider: #F0F0F0; --divider-h: #EDEDED;
+            --r-card: 8px; --r-btn: 6px; --r-tag: 4px; --p-page: 14px; --p-card: 14px;
+            --h-navbar: 48px; --h-bottom: 90px;
+            /* 兼容 JS 内联旧变量名 */
+            --color-primary: var(--primary); --color-primary-light: var(--primary-light);
+            --color-danger: var(--danger); --color-warning: #F19204; --color-info: var(--info);
+            --color-success: var(--success); --color-bg-page: var(--bg-page); --color-bg-card: var(--bg-card);
+            --color-bg-input: #F7F7F7; --color-text-primary: var(--t1); --color-text-secondary: var(--t2);
+            --color-text-hint: var(--t3); --color-border: var(--border); --color-divider-h: var(--divider-h);
+            --color-divider-bottom: var(--divider-h); --shadow-card: 0 2px 12px rgba(0,0,0,.05);
+            --page-padding: var(--p-page);
+            --primary-color: var(--primary);
+            --danger-color: var(--danger); --warning-color: #F19204; --success-color: var(--success);
+            --text-muted: var(--t3); --text-primary: var(--t1); --border-color: var(--border);
+        }
+        body {
+            font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 100%);
+            min-height: 100vh; display: flex; justify-content: center; padding: 32px 0;
+            color: var(--t1); font-size: 13px;
+        }
+        .shell {
+            width: 375px; background: var(--bg-page); border-radius: 40px; overflow: hidden;
+            box-shadow: 0 32px 80px rgba(0,0,0,.5), inset 0 0 0 2px rgba(255,255,255,.1);
+            display: flex; flex-direction: column; min-height: 700px; max-height: 90vh;
+        }
+        /* 隐藏滚动条，保留滚动 */
+        .shell, .shell * {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .shell::-webkit-scrollbar, .shell *::-webkit-scrollbar {
+            width: 0; height: 0; display: none;
+        }
+        .statusbar {
+            height: 50px; background: #fff; display: flex; align-items: flex-end;
+            justify-content: space-between; padding: 0 20px 8px 24px; flex-shrink: 0;
+        }
+        .sb-time { font-size: 15px; font-weight: 700; color: var(--t1); letter-spacing: -.3px; }
+        .sb-right { display: flex; align-items: center; gap: 6px; }
+
+        .page-container {
+            display: none; flex: 1; overflow: hidden; flex-direction: column;
+            background: var(--bg-page); min-height: 0;
+        }
+        .page-container.active { display: flex; }
+        #page-construction-detail.active, #page-inspect-detail.active,
+        #page-inspect-form.active, #page-rectify-review.active,
+        #page-rectify-detail.active, #page-merchant-report-detail.active {
+            background: #fff;
+        }
+
+        /* 导航栏 */
+        .navbar, .nav-bar {
+            height: var(--h-navbar); background: #fff; display: flex; align-items: center;
+            justify-content: center; position: relative; flex-shrink: 0;
+        }
+        .nb-back, .nav-back {
+            position: absolute; left: 10px; width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+        .nb-back::before, .nav-back::before {
+            content: ''; width: 9px; height: 9px;
+            border-left: 2px solid var(--t1); border-bottom: 2px solid var(--t1);
+            transform: rotate(45deg); margin-left: 4px;
+        }
+        .nav-back { border: none; transform: none; }
+        .nb-title, .nav-title { font-size: 17px; font-weight: 600; color: var(--t1); }
+        .nb-capsule {
+            position: absolute; right: 8px; height: 30px; border: 1px solid var(--border);
+            border-radius: 15px; display: flex; align-items: center; padding: 0 10px; gap: 8px;
+        }
+        .nb-capsule .dots { width: 18px; height: 3px; background: #bbb; border-radius: 2px; }
+        .nb-capsule .circle { width: 22px; height: 22px; border-radius: 50%; background: #f0f0f0; border: 1px solid var(--border); }
+
+        /* 首页 */
+        .home-page, .home-body { padding: 14px var(--p-page) 24px; flex: 1; overflow-y: auto; }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+        .stat-card {
+            background: var(--bg-card); border-radius: var(--r-card); padding: 12px 16px;
+            box-shadow: 0 6px 8px rgba(222,227,240,.4); cursor: pointer; transition: .15s;
+            display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        }
+        .stat-card:active { opacity: .85; }
+        .stat-info { display: flex; flex-direction: column; gap: 4px; }
+        .stat-num { font-size: 26px; font-weight: 700; color: var(--primary); line-height: 1; }
+        .stat-label { font-size: 13px; color: var(--t3); }
+        .stat-icon { width: 36px; height: 36px; border-radius: 4px; background: #DDDDDD; flex-shrink: 0; }
+        .entrance-list { display: flex; flex-direction: column; gap: 10px; }
+        .entrance-card {
+            background: var(--bg-card); border-radius: var(--r-card); padding: 14px 16px;
+            display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 6px 8px rgba(222,227,240,.4); cursor: pointer; transition: .15s; position: relative;
+        }
+        .entrance-card:active { opacity: .85; }
+        .entrance-icon {
+            width: 24px; height: 24px; border-radius: 4px; flex-shrink: 0; background: #DDDDDD;
+        }
+        .entrance-info { flex: 1; min-width: 0; }
+        .entrance-title { font-size: 16px; font-weight: 600; color: #000; margin-bottom: 2px; }
+        .entrance-desc { font-size: 12px; color: var(--t3); }
+        .entrance-badge {
+            min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+            background: var(--danger); color: #fff; font-size: 11px; line-height: 18px;
+            text-align: center; box-sizing: border-box;
+        }
+        .entrance-arrow { width: 16px; height: 16px; flex-shrink: 0; }
+        .entrance-arrow img { width: 16px; height: 16px; display: block; }
+        .filter-banner {
+            margin: 12px 14px 0; padding: 10px 12px; background: #E8F9F0;
+            border-radius: 6px; font-size: 13px; color: #1ABA6C;
+        }
+
+        /* Tab */
+        .m-tabs-wrap, .tabs-container {
+            position: relative; background: #fff; border-bottom: 1px solid var(--divider-h);
+            flex-shrink: 0; overflow: hidden;
+        }
+        .m-tabs-wrap::after, .tabs-container::after {
+            content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 32px;
+            pointer-events: none; background: linear-gradient(to right, rgba(255,255,255,0), #fff); z-index: 1;
+        }
+        .m-tabs, .tabs { display: flex; overflow-x: auto; padding: 0 14px; scrollbar-width: none; flex-wrap: nowrap; }
+        .m-tabs::-webkit-scrollbar, .tabs::-webkit-scrollbar { display: none; }
+        .m-tab, .tab {
+            display: inline-flex; align-items: center; gap: 3px; padding: 11px 16px 9px 0;
+            font-size: 14px; color: #4C4C4C; white-space: nowrap; cursor: pointer;
+            position: relative; flex-shrink: 0; font-weight: 400;
+        }
+        .m-tab.on, .tab.active { color: var(--primary); font-weight: 600; }
+        .m-tab-lbl { position: relative; }
+        .m-tab.on .m-tab-lbl::after, .tab.active .m-tab-lbl::after {
+            content: ''; position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%);
+            width: 20px; height: 3px; background: var(--primary); border-radius: 2px;
+        }
+        .tab.active::after { display: none; }
+        .m-tab-bdg, .tab .badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+            font-size: 10px; font-weight: 600; background: var(--danger); color: #fff; line-height: 1;
+        }
+
+        /* 筛选 */
+        .list-filter-bar {
+            background: #fff; padding: 10px 14px 12px; border-bottom: 1px solid var(--divider-h); flex-shrink: 0;
+        }
+        .list-filter-row { display: flex; gap: 8px; margin-bottom: 8px; }
+        .list-filter-row:last-child { margin-bottom: 0; }
+        .list-filter-input {
+            flex: 1; height: 36px; padding: 0 12px; border: 1px solid var(--border);
+            border-radius: 5px; font-size: 13px; outline: none; background: #fff; font-family: inherit;
+            box-sizing: border-box;
+        }
+        .list-filter-input-full { flex: 1; width: 100%; }
+
+        /* 筛选栏（下拉式，对齐「装修管理-特殊作业申请」） */
+        .filter-bar { display: flex; background: #fff; border-bottom: 1px solid var(--divider-h); flex-shrink: 0; }
+        .fb-item { flex: 1; display: flex; align-items: center; justify-content: center; gap: 3px; padding: 10px 0; font-size: 12px; color: #333; cursor: pointer; }
+        .fb-active .fb-label, .fb-active .fb-arrow { color: var(--primary); }
+        .fb-arrow { font-size: 10px; color: #999; display: inline-block; transition: transform .2s; }
+        .fb-arrow-open { transform: rotate(180deg); }
+        .filter-mask { display: none; position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 500; flex-direction: column; }
+        .filter-mask.active { display: flex; }
+        .filter-spacer { flex-shrink: 0; }
+        .filter-panel { width: 375px; margin: 0 auto; background: #fff; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+        .filter-bg { flex: 1; background: rgba(0,0,0,.6); }
+        .fp-body { padding: 12px 18px 16px; }
+        .fp-search-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+        .fp-search-box { flex: 1; display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; background: #F5F7FA; border-radius: 10px; }
+        .fp-search-icon { font-size: 14px; line-height: 1; flex-shrink: 0; }
+        .fp-input { flex: 1; font-size: 14px; color: #333; border: none; outline: none; background: transparent; font-family: inherit; }
+        .fp-cancel { font-size: 14px; color: #333; flex-shrink: 0; cursor: pointer; }
+        .fp-btn { height: 44px; border-radius: 12px; font-size: 16px; font-weight: 600; border: none; display: flex; align-items: center; justify-content: center; width: 100%; cursor: pointer; }
+        .fp-btn-query { background: var(--primary); color: #fff; }
+
+        /* 列表 */
+        .task-scroll, .task-list { flex: 1; overflow-y: auto; padding: 0 var(--p-page); }
+        .count-tip { font-size: 12.5px; color: var(--t3); padding: 14px 0 6px; line-height: 1.4; }
+        .task-card {
+            background: var(--bg-card); border-radius: var(--r-card); padding: 14px;
+            margin-bottom: 10px; box-shadow: var(--shadow-card); cursor: pointer; transition: .1s;
+        }
+        .task-card:active { opacity: .9; }
+        .task-card.readonly { cursor: default; }
+        .task-card.readonly:active { opacity: 1; }
+        .card-title-row, .card-hd-row {
+            display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px;
+        }
+        .card-green-title {
+            font-size: 14px; font-weight: 600; color: var(--primary);
+            line-height: 1.4; flex: 1;
+        }
+        p.card-green-title, span.card-green-title:only-child { margin-bottom: 14px; }
+        .card-title-row .card-green-title, .card-hd-row .card-green-title { margin-bottom: 0 !important; }
+        .card-shop-no { font-size: 12px; font-weight: 600; color: var(--t1); margin-bottom: 6px; display: block; }
+        .task-header, .task-title { display: none; }
+        .info-line { font-size: 12px; color: var(--t2); margin-bottom: 3px; line-height: 1.5; }
+        .task-info-row { font-size: 12px; color: var(--t2); margin-bottom: 3px; line-height: 1.5; }
+        .stag, .status-tag, .task-status {
+            display: inline-block; padding: 2px 8px; border-radius: var(--r-tag);
+            font-size: 11px; white-space: nowrap; flex-shrink: 0;
+        }
+        .stag-green, .status-green { color: var(--primary); background: var(--primary-light); }
+        .stag-warn, .status-orange { color: var(--warn); background: var(--warn-light); }
+        .stag-blue, .status-blue { color: var(--info); background: var(--info-light); }
+        .stag-red, .status-red { color: var(--danger); background: var(--danger-light); }
+        #page-construction-list .tabs-container { border-bottom: none; }
+        .stag-gray, .status-gray { color: var(--t3); background: rgba(0,0,0,.04); }
+        .stag-construction {
+            color: #FA2B2D; background: rgba(250,43,45,0.05);
+            outline: 1px solid rgba(250,43,45,0.30); outline-offset: -1px; font-weight: 500;
+        }
+        .stag-completed {
+            color: #1ABA6C; background: #E8F9F0;
+            outline: 1px solid rgba(26,186,108,0.30); outline-offset: -1px; font-weight: 500;
+        }
+        .task-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+        .task-tag, .task-tag.tag-overdue {
+            font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #fff1f0; color: var(--danger);
+        }
+        .task-tag.special-fire     { background: var(--warn-light); color: var(--warn); }
+        .task-tag.special-height   { background: var(--info-light); color: var(--info); }
+        .task-tag.special-electric { background: var(--primary-light); color: var(--primary); }
+        .special-work-tags { margin-top: 6px; }
+        .card-action, .task-card-action {
+            display: flex; justify-content: flex-end; align-items: center; gap: 5px;
+            margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border);
+        }
+        .card-btn-fill, .card-btn-outline, .btn-card {
+            display: inline-flex; align-items: center; justify-content: center;
+            height: 28px; border-radius: 6px; font-size: 12px; font-weight: 600;
+            white-space: nowrap; cursor: pointer; box-sizing: border-box; border: none;
+        }
+        .card-btn-fill:active, .card-btn-outline:active, .btn-card:active { opacity: .85; }
+        .btn-short, .btn-card-short { width: 72px; }
+        .btn-long { padding: 0 12px; }
+        .card-btn-fill { background: var(--primary); color: #fff; }
+        .card-btn-outline, .btn-card {
+            background: #fff; color: var(--primary); border: 1px solid var(--primary);
+        }
+
+        /* Section 标题 & 详情 */
+        .sec-title { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; margin-left: -14px; }
+        .sec-bar { width: 4px; height: 18px; background: var(--primary); border-radius: 0 4px 4px 0; flex-shrink: 0; }
+        .sec-label { font-size: 14px; font-weight: 600; color: var(--t1); }
+        .detail-title { display: none; }
+        .page-scroll, .page-with-footer { flex: 1; overflow-y: auto; padding: 10px 0; }
+        .detail-section {
+            background: #FFFFFF; padding: var(--p-page); margin-bottom: 10px;
+        }
+        .detail-card {
+            background: #FAFAFA; padding: var(--p-page); margin: 0 14px 10px;
+            border-radius: 10px; border: 1px solid #E6E6E6;
+        }
+        .detail-section.cats-section {
+            background: #FAFAFA; margin: 0 14px 10px;
+            border-radius: 10px; border: 1px solid #E6E6E6;
+        }
+        .field-row, .detail-row {
+            display: flex; align-items: flex-start; padding: 6px 0; font-size: 13px; border-bottom: none;
+        }
+        .f-label, .detail-label {
+            width: 110px; flex-shrink: 0; color: #666; text-align: right; line-height: 18px;
+        }
+        .f-label::after, .detail-label::after { content: '：'; }
+        .f-value, .detail-value {
+            color: var(--t1); text-align: left; flex: 1; line-height: 18px; padding-left: 2px;
+        }
+        .cert-link-text { color: var(--info); text-decoration: underline; cursor: pointer; }
+        /* 施工详情页：即将到期黄色提示条对齐「商户端装修管理-延期申请-审核中详情页」配色 */
+        #page-construction-detail .status-banner-orange { background: rgba(241,146,4,0.08); }
+        #page-construction-detail .status-banner-orange .status-banner-icon { background: #F19204; }
+        #page-construction-detail .status-banner-orange .status-banner-title,
+        #page-construction-detail .status-banner-orange .status-banner-desc { color: #F19204; }
+        /* 整改详情页：提示横幅配色对齐「商户端装修管理-特殊作业申请」详情页 */
+        #page-rectify-detail .status-banner-orange { background: rgba(241,146,4,0.08); }
+        #page-rectify-detail .status-banner-orange .status-banner-icon { background: #F19204; }
+        #page-rectify-detail .status-banner-orange .status-banner-title,
+        #page-rectify-detail .status-banner-orange .status-banner-desc { color: #F19204; }
+        #page-rectify-detail .status-banner-green { background: rgba(26,186,108,0.06); }
+        #page-rectify-detail .status-banner-green .status-banner-icon { background: #1ABA6C; }
+        #page-rectify-detail .status-banner-green .status-banner-title,
+        #page-rectify-detail .status-banner-green .status-banner-desc { color: #1ABA6C; }
+        /* 商户每日报备详情页：提示横幅配色对齐「停工整改复核」详情页 */
+        #page-merchant-report-detail .status-banner-green { background: rgba(26,186,108,0.06); }
+        #page-merchant-report-detail .status-banner-green .status-banner-icon { background: #1ABA6C; }
+        #page-merchant-report-detail .status-banner-green .status-banner-title,
+        #page-merchant-report-detail .status-banner-green .status-banner-desc { color: #1ABA6C; }
+        /* 施工详情页：基本信息类模块对齐「装修管理」详情页样式（固定宽度标签+冒号，无下划线） */
+        #page-construction-detail .detail-row {
+            padding: 6px 0; border-bottom: none;
+        }
+        #page-construction-detail .detail-label { width: 110px; color: #666; text-align: right; }
+        #page-construction-detail .detail-label::after { content: '：'; }
+        #page-construction-detail .detail-value { text-align: left; }
+        #page-construction-detail .tl-item { display: flex; padding-bottom: 22px; position: relative; }
+        #page-construction-detail .tl-item:last-child { padding-bottom: 0; }
+        #page-construction-detail .tl-axis { position: absolute; left: -13px; top: 0; bottom: 0; width: 5px; display: flex; flex-direction: column; align-items: center; }
+        #page-construction-detail .tl-dot { width: 5px; height: 5px; border-radius: 9999px; flex-shrink: 0; background: #B3B3B3; z-index: 1; margin-top: 6px; }
+        #page-construction-detail .tl-dot.dot-pass { background: #1ABA6C; }
+        #page-construction-detail .tl-dot.dot-reject { background: #FA2B2D; }
+        #page-construction-detail .tl-dot.dot-waiting { background: #B3B3B3; }
+        #page-construction-detail .tl-line { flex: 1; width: 1px; background: #E0E0E0; margin-top: 8px; }
+        #page-construction-detail .tl-content { flex: 1; }
+        /* 详情页顶部状态横幅（图标 + 标题 + 说明） */
+        .status-banner {
+            display: flex; align-items: flex-start; gap: 8px;
+            border-radius: 8px; padding: 12px; margin: 0 14px 10px;
+        }
+        .status-banner-icon {
+            width: 18px; height: 18px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-top: 2px;
+        }
+        .status-banner-icon span { font-size: 11px; font-weight: 700; color: #fff; line-height: 1; }
+        .status-banner-body { flex: 1; min-width: 0; }
+        .status-banner-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+        .status-banner-desc { font-size: 12px; line-height: 1.6; }
+        .status-banner-red { background: rgba(250, 43, 45, 0.05); }
+        .status-banner-red .status-banner-icon { background: var(--danger); }
+        .status-banner-red .status-banner-title,
+        .status-banner-red .status-banner-desc { color: var(--danger); }
+        .status-banner-orange { background: rgba(250, 140, 22, 0.1); }
+        .status-banner-orange .status-banner-icon { background: var(--warn); }
+        .status-banner-orange .status-banner-title,
+        .status-banner-orange .status-banner-desc { color: #ad6800; }
+        .status-banner-blue { background: var(--info-light); }
+        .status-banner-blue .status-banner-icon { background: var(--info); }
+        .status-banner-blue .status-banner-title,
+        .status-banner-blue .status-banner-desc { color: #096dd9; }
+        .status-banner-green { background: var(--primary-light); }
+        .status-banner-green .status-banner-icon { background: var(--primary); }
+        .status-banner-green .status-banner-title,
+        .status-banner-green .status-banner-desc { color: #389e0d; }
+        .detail-status-banner {
+            display: flex; align-items: flex-start; gap: 8px; border-radius: 8px;
+            padding: 12px; margin: 0 14px 10px; font-size: 12px; line-height: 1.6;
+        }
+        .banner-orange { background: var(--warn-light); color: #ad6800; }
+        .banner-blue { background: var(--info-light); color: #096dd9; }
+        .banner-green { background: var(--primary-light); color: #389e0d; }
+        .banner-red { background: var(--danger-light); color: var(--danger); border: 1px solid var(--danger-border); }
+        .banner-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+        .cat-item { padding: 10px 0; border-bottom: 1px solid #F0F0F0; }
+        .cat-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .cat-hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+        .cat-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; }
+        .cat-name { font-size: 14px; font-weight: 600; color: var(--t1); }
+        .my-dept-tag {
+            font-size: 10px; padding: 2px 5px; border-radius: 2px;
+            background: #E8F9F0; color: #1ABA6C;
+            outline: 1px solid rgba(26,186,108,0.3); outline-offset: -1px; font-weight: 500;
+        }
+        .cat-sub { font-size: 13px; color: var(--t2); line-height: 1.5; margin-bottom: 6px; }
+        .report-time-row { font-size: 12px; color: #999; line-height: 1.5; margin-bottom: 6px; }
+        .cat-dept-row { font-size: 12px; color: var(--t3); }
+        .cat-dept-label { color: var(--t3); }
+        .cat-dept-val { color: var(--t1); }
+        .cat-remark-label { font-size: 14px; font-weight: 600; color: var(--t1); margin-top: 12px; margin-bottom: 6px; }
+        .cat-remark-text { font-size: 13px; color: var(--t1); line-height: 1.6; }
+        .cats-section { background: #FAFAFA; border: 1px solid #E6E6E6; border-radius: 10px; }
+        .link-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 0; border-bottom: none; font-size: 13px; cursor: pointer; color: var(--t1);
+        }
+        .link-row .arrow { color: var(--t3); }
+
+        /* 今日商户报备 */
+        .self-check-block { background: #fff; border-radius: 8px; padding: 12px; margin-bottom: 10px; border: 1px solid var(--divider); }
+        .self-check-block:last-child { margin-bottom: 0; }
+        .self-check-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .self-check-status { font-size: 12px; padding: 2px 8px; border-radius: 4px; flex-shrink: 0; }
+        .self-check-status.done { background: var(--primary-light); color: var(--primary); }
+        .self-check-status.pending { background: var(--warn-light); color: var(--warn); }
+        .self-check-row { font-size: 12px; color: var(--t2); line-height: 1.6; margin-bottom: 6px; }
+        .self-check-row strong { color: var(--t3); font-weight: 500; }
+        .work-item { padding: 10px 0; border-bottom: 1px solid #F0F0F0; }
+        .work-item:last-child, .work-item.no-border { border-bottom: none; padding-bottom: 0; }
+        .work-hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+        .work-name { font-size: 14px; font-weight: 600; color: var(--t1); }
+        .report-status { font-size: 12px; padding: 2px 8px; border-radius: 4px; flex-shrink: 0; }
+        .report-status-done { background: var(--primary-light); color: var(--primary); }
+        .report-status-pending { background: var(--warn-light); color: var(--warn); }
+        .report-warn { font-size: 12px; color: var(--warn); line-height: 1.6; }
+        .section-tip { font-size: 12px; color: var(--t3); margin: -8px 0 12px; line-height: 1.6; }
+        .section-tip + .cat-item, .section-tip + .work-item { padding-top: 0; }
+        .work-field { display: flex; align-items: flex-start; padding: 4px 0; font-size: 13px; }
+        .work-field-label { flex-shrink: 0; color: #666; line-height: 1.5; }
+        .work-field-value { color: var(--t1); flex: 1; line-height: 1.5; }
+        .work-cert-block { padding: 4px 0; font-size: 13px; }
+        .work-cert-block .work-field-label { display: block; margin-bottom: 6px; }
+        .cert-file-col { display: flex; flex-direction: column; gap: 6px; }
+        .cert-file-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+        /* 附件文件行（对齐 preview.html 详情页附件） */
+        .file-item {
+            display: flex; align-items: center; gap: 8px;
+            height: 50px; padding: 0 10px 0 13px; box-sizing: border-box;
+            background: #F2FAFE; border-radius: 8px; border: 1px solid #D1E2EB;
+        }
+        .file-icon-img { width: 24px; height: 24px; flex-shrink: 0; }
+        .file-name {
+            flex: 1; font-size: 12.5px; color: #000; line-height: 1.3;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .file-actions { display: flex; gap: 12px; flex-shrink: 0; align-items: center; }
+        .file-action-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 24px; height: 24px; padding: 0; border: none; background: transparent;
+            cursor: pointer; flex-shrink: 0;
+        }
+        .file-action-btn:active { opacity: .7; }
+        .file-action-img { width: 24px; height: 24px; display: block; cursor: pointer; }
+        .file-preview-placeholder {
+            min-height: 200px; background: #f5f5f5; border-radius: 8px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 24px; color: var(--t3); font-size: 13px; text-align: center; line-height: 1.6;
+        }
+        .file-preview-placeholder .file-preview-name { color: var(--t1); font-weight: 500; margin-top: 8px; word-break: break-all; }
+
+        .timeline { padding-left: 13px; padding-top: 2px; }
+        .timeline-item { position: relative; padding-bottom: 22px; padding-left: 0; border-left: none; margin-left: 0; }
+        .timeline-item:last-child { padding-bottom: 0; }
+        .timeline-item::before {
+            content: ''; position: absolute; left: -13px; top: 6px;
+            width: 5px; height: 5px; border-radius: 9999px; z-index: 1; background: #B3B3B3;
+        }
+        .timeline-item:not(:last-child)::after {
+            content: ''; position: absolute; left: -11px; top: 19px; bottom: 2px;
+            width: 2px; background: #E0E0E0; z-index: 0;
+        }
+        .timeline-item.wait::before { background: #d9d9d9; }
+        .tl-dept, .timeline-dept { font-size: 12px; font-weight: 600; color: #000; line-height: 1.4; }
+        .tl-meta, .timeline-meta { font-size: 12px; color: #666; font-weight: 400; margin-top: 4px; }
+
+        /* 表单 */
+        .form-page { padding: 0; }
+        .form-group { margin-bottom: 16px; }
+        .form-label { font-size: 14px; font-weight: 500; color: var(--t1); margin-bottom: 8px; display: block; }
+        .form-label .req, .m-req { color: var(--danger); margin-right: 2px; }
+        .reject-reason-textarea, .m-remark-ta {
+            width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+            border-radius: 6px; font-size: 13px; resize: none; height: 80px;
+            outline: none; background: #fff; font-family: inherit; line-height: 1.6;
+        }
+        .reject-reason-textarea:focus { border-color: var(--primary); }
+        .reject-reason-textarea.danger { border-color: var(--danger); }
+        .rev-row, .chip-group, .m-sub-tags { display: flex; flex-wrap: wrap; gap: 10px; }
+        .rev-btn, .chip, .m-sub-tag {
+            padding: 8px 26px 9px; text-align: center; border-radius: 5px;
+            font-size: 14px; font-weight: 400; cursor: pointer; transition: .15s;
+            background: #F7F7F7; color: #333; border: none;
+        }
+        .rev-pass, .chip.active, .m-sub-tag.on {
+            background: rgba(26,186,108,0.05); outline: 1px solid var(--primary);
+            outline-offset: -1px; color: var(--primary); font-weight: 600;
+        }
+        .rev-reject, .chip.reject.active {
+            background: rgba(250,43,45,0.05); outline: 1px solid var(--danger);
+            outline-offset: -1px; color: var(--danger); font-weight: 600;
+        }
+        .sv-block { padding: 0 14px; margin-bottom: 20px; }
+        .req-label::before { content: '* '; color: var(--danger); }
+        .sv-textarea-box {
+            border: 1px solid var(--border); border-radius: 5px;
+            padding: 10px 12px; background: #fff;
+        }
+        .sv-textarea-box.danger { border-color: var(--danger); }
+        .sv-ta {
+            width: 100%; min-height: 80px; font-size: 13px; line-height: 1.5;
+            resize: none; outline: none; border: none; background: transparent;
+            font-family: inherit;
+        }
+        .att-sub-label { font-size: 13px; color: #666666; margin-bottom: 6px; }
+        .att-cat-label { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 8px; }
+        .remark-text { font-size: 13px; color: #333; line-height: 1.7; }
+        .att-block { margin-top: 12px; }
+        .photo-thumb-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .photo-thumb-item {
+            width: 72px; height: 72px; border-radius: 8px; background: #f0f0f0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; color: #666; text-align: center; padding: 4px;
+            word-break: break-all; line-height: 1.3; cursor: pointer; box-sizing: border-box;
+        }
+        .recheck-empty { font-size: 13px; color: #999; line-height: 1.6; }
+        .tl-hd { display: flex; justify-content: space-between; align-items: center; }
+        .tl-status { font-size: 12px; font-weight: 600; flex-shrink: 0; margin-left: 8px; }
+        .tl-status-wait { color: #F19204; }
+        .tl-status-reject { color: #FA2B2D; }
+        .form-hint { font-size: 12px; color: var(--t3); line-height: 1.6; margin-bottom: 12px; }
+        .photo-upload-grid, .m-multi-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+        .photo-upload-box, .m-thumb-add {
+            width: 72px; height: 72px; border: 2px dashed #D9D9D9; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; color: #D9D9D9; cursor: pointer; background: #fafafa;
+        }
+
+        /* 底部栏 */
+        .bottom-bar, .btn-group {
+            background: #fff; border-top: 1px solid var(--divider-h);
+            height: 90px; padding: 6px 18px 0; display: flex; align-items: flex-start;
+            gap: 15px; box-sizing: border-box; flex-shrink: 0;
+            position: static; transform: none; width: auto; max-width: none; z-index: auto;
+        }
+        .btn {
+            flex: 1; height: 44px; border-radius: 6px; font-size: 16px; font-weight: 600;
+            border: none; cursor: pointer; transition: .15s; display: flex; align-items: center;
+            justify-content: center; box-sizing: border-box; font-family: inherit; padding: 0;
+        }
+        .btn:active { transform: scale(.98); }
+        .btn-primary, .btn-fill { background: var(--primary); color: #fff; }
+        .btn-outline-green, .btn-outline { background: #fff; color: var(--primary); border: .5px solid var(--primary); font-weight: 400; }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-sm { flex: none; height: 28px; font-size: 12px; padding: 0 12px; }
+
+        .empty-state { text-align: center; padding: 48px 14px; color: var(--t3); font-size: 14px; }
+
+        /* 弹窗 */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+            z-index: 2000; align-items: flex-end; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-sheet {
+            width: 375px; max-height: 85vh; background: #fff;
+            border-radius: 12px 12px 0 0; overflow: hidden; display: flex; flex-direction: column;
+        }
+        .modal-header {
+            padding: 16px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-title { font-size: 16px; font-weight: 600; }
+        .modal-close { font-size: 22px; color: var(--t3); cursor: pointer; line-height: 1; }
+        .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
+        .modal-footer { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; gap: 15px; }
+        .cert-preview {
+            background: linear-gradient(135deg, #fff 0%, #f0f8ff 50%, #e8f4fd 100%);
+            border: 2px solid #B8D4E8; border-radius: 12px; padding: 20px; margin: 8px 0;
+        }
+        .cert-preview h3 { text-align: center; color: #1A5276; font-size: 18px; font-weight: 700; letter-spacing: 4px; margin-bottom: 4px; }
+        .cert-preview p { text-align: center; font-size: 11px; color: #7F8C8D; margin-bottom: 16px; }
+        .cert-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; border-bottom: 1px solid #EEF5FA; }
+        .cert-row span:first-child { color: #7F8C8D; }
+        .cert-row span:last-child { color: #1A1A1A; font-weight: 500; }
+    </style>
+</head>
+<body>
+<div class="shell">
+<div class="statusbar">
+    <span class="sb-time">9:41</span>
+    <div class="sb-right">
+        <svg width="17" height="11" viewBox="0 0 17 11" fill="none"><rect x="0" y="8" width="3" height="3" rx=".6" fill="#1A1A1A"/><rect x="4.5" y="5.5" width="3" height="5.5" rx=".6" fill="#1A1A1A"/><rect x="9" y="3" width="3" height="8" rx=".6" fill="#1A1A1A"/><rect x="13.5" y="0" width="3" height="11" rx=".6" fill="#1A1A1A"/></svg>
+        <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><circle cx="8" cy="10" r="1.3" fill="#1A1A1A"/><path d="M5.2 7.5 Q8 5.2 10.8 7.5" stroke="#1A1A1A" stroke-width="1.4" stroke-linecap="round" fill="none"/><path d="M2.5 4.8 Q8 1.2 13.5 4.8" stroke="#1A1A1A" stroke-width="1.4" stroke-linecap="round" fill="none"/><path d="M0 2.2 Q8 -2 16 2.2" stroke="#1A1A1A" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x=".75" y=".75" width="20.5" height="10.5" rx="2.5" stroke="#1A1A1A" stroke-width="1.2"/><rect x="22" y="3.5" width="2.3" height="5" rx="1.2" fill="#1A1A1A" opacity=".4"/><rect x="2.5" y="2.5" width="15" height="7" rx="1.5" fill="#1A1A1A"/></svg>
+    </div>
+</div>
+
+<!-- 首页 -->
+<div class="page-container active" id="page-home">
+    <div class="navbar">
+        <span class="nb-title nav-title">装修施工期管理</span>
+        <div class="nb-capsule"><div class="dots"></div><div class="circle"></div></div>
+    </div>
+    <div class="home-page">
+        <div class="stats-grid">
+            <div class="stat-card" onclick="openConstructionList('all')">
+                <div class="stat-info"><span class="stat-num" id="homeStatActive">7</span><div class="stat-label">施工中</div></div>
+                <div class="stat-icon"></div>
+            </div>
+            <div class="stat-card" onclick="openInspectList('today')">
+                <div class="stat-info"><span class="stat-num" id="homeStatToday">3</span><div class="stat-label">今日待检</div></div>
+                <div class="stat-icon"></div>
+            </div>
+            <div class="stat-card" onclick="openInspectList('recheck')">
+                <div class="stat-info"><span class="stat-num" id="homeStatRecheck">1</span><div class="stat-label">今日待复检</div></div>
+                <div class="stat-icon"></div>
+            </div>
+            <div class="stat-card" onclick="openConstructionList('stopped')">
+                <div class="stat-info"><span class="stat-num" id="homeStatStopped">1</span><div class="stat-label">停工整改</div></div>
+                <div class="stat-icon"></div>
+            </div>
+        </div>
+        <div class="entrance-list">
+            <div class="entrance-card" onclick="openConstructionList('all')">
+                <div class="entrance-icon"></div>
+                <div class="entrance-info">
+                    <div class="entrance-title">施工中商户</div>
+                    <div class="entrance-desc" id="homeDescConstruction">共 4 个商户在施工期内</div>
+                </div>
+                <div class="entrance-arrow"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAA0JJREFUeAHtmjuOGkEQhgswYIhw5hBnTpAYSBwuN1hOYAh4RR5CR4bMGWyGgGBuwDqyM3DmBJYjcIR1ADKIh6tQI9kS3YDUL9n9SWhYpqRV/dOP/58ZAIfD4XA4/ltCIJlqtdo5HA6lUCj0jH8G/X6/DRYTAYlQ83jwsfmXeEzh5y6fz8N0Ov0OlhIGidCVP/NzC4X5BJYiVQABJMJ7sBCpAoTD4bngdGCjCFIFWK/XRTwsBCXdSqWSBYuQKkAQBM84CgrAFyGFC+S4Xq+nwRKkrwG9Xm9xSYT9fm+NCNJ9wAk21Md4xVOckqNQJBgYRJkABImAAjwJShabzcajqQOGULoNDgaDOXqDsqAkHYvFxqVSKQWGUO4DUIQAD01BSTYajXbAEFKtMA+0wj/QEtN0uzt3HqdJNpfLpWez2RfQjBYBCBRhckkEE7lBmwAEiYBX+hU2+45Toj08aRWAwGH+zfO8N3TFOSUkwk+aNqABXWHoL7bbrY8HUW7o6MoNSn2ACNr6aAvEr9xswIzSBBRiZAQQLDcIwxNa5pHq8GRMAOKa3IBrxUhlbjA2Bf6EGtztdk8mcoPREXCCNVZA28zLBGlVCdIKAQiWG4qCEhJhJDs3WCMAMRwOJxfCUzYej0vNDVYJQLDwxH2WgALdg0SsE4BxAE1YJ0Cj0SAH2OKdx53iESRilQBof+9xOwwEJfNEItEEiVjhAwhT9xC1p8FzsP39Kzb/mlOizAgZHwHUPJkc/JrmlCi9e2xUgEvNM2dYIJMEijAmgO/7qdVqRbfM07waFMBT2TxhZBdgzYuGPd0LKKtu/vh/wADL5ZLsrCjnt3HOB6CBF6AZ9hZJSVDS7vf7LdCE1hHA3hTxBSVamye0LYKs+RbvPC54DzjnfdCMFgFqtdoHbLArKHnEK18EAyifAhRuLjQ/TyaTZTCE8cfj2LzX7Xb/vcfjp3AjKDlaXJPNE0rCkMlwcyvSp8A1/j4SiXg2NE9InQLXhhtbmiekCoDNt0Dg73FKaPH3tyB7ERQ90W3iXi/1fp4MZL8szVvRyeJ2wUKkCoBD/OHMz9r9/S1I3QYzmcwct7cEfn2Ln18oyEds/jM4HA6Hw+Gwkd+zoVs3AKJk+gAAAABJRU5ErkJggg==" alt=""></div>
+            </div>
+            <div class="entrance-card" onclick="openInspectList()">
+                <div class="entrance-icon"></div>
+                <div class="entrance-info">
+                    <div class="entrance-title">巡检任务</div>
+                    <div class="entrance-desc" id="homeDescInspect">今日待检 3 个 · 待复检 1 个</div>
+                </div>
+                <span class="entrance-badge" id="moduleBadgeInspect" style="display:none;">0</span>
+                <div class="entrance-arrow"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAA0JJREFUeAHtmjuOGkEQhgswYIhw5hBnTpAYSBwuN1hOYAh4RR5CR4bMGWyGgGBuwDqyM3DmBJYjcIR1ADKIh6tQI9kS3YDUL9n9SWhYpqRV/dOP/58ZAIfD4XA4/ltCIJlqtdo5HA6lUCj0jH8G/X6/DRYTAYlQ83jwsfmXeEzh5y6fz8N0Ov0OlhIGidCVP/NzC4X5BJYiVQABJMJ7sBCpAoTD4bngdGCjCFIFWK/XRTwsBCXdSqWSBYuQKkAQBM84CgrAFyGFC+S4Xq+nwRKkrwG9Xm9xSYT9fm+NCNJ9wAk21Md4xVOckqNQJBgYRJkABImAAjwJShabzcajqQOGULoNDgaDOXqDsqAkHYvFxqVSKQWGUO4DUIQAD01BSTYajXbAEFKtMA+0wj/QEtN0uzt3HqdJNpfLpWez2RfQjBYBCBRhckkEE7lBmwAEiYBX+hU2+45Toj08aRWAwGH+zfO8N3TFOSUkwk+aNqABXWHoL7bbrY8HUW7o6MoNSn2ACNr6aAvEr9xswIzSBBRiZAQQLDcIwxNa5pHq8GRMAOKa3IBrxUhlbjA2Bf6EGtztdk8mcoPREXCCNVZA28zLBGlVCdIKAQiWG4qCEhJhJDs3WCMAMRwOJxfCUzYej0vNDVYJQLDwxH2WgALdg0SsE4BxAE1YJ0Cj0SAH2OKdx53iESRilQBof+9xOwwEJfNEItEEiVjhAwhT9xC1p8FzsP39Kzb/mlOizAgZHwHUPJkc/JrmlCi9e2xUgEvNM2dYIJMEijAmgO/7qdVqRbfM07waFMBT2TxhZBdgzYuGPd0LKKtu/vh/wADL5ZLsrCjnt3HOB6CBF6AZ9hZJSVDS7vf7LdCE1hHA3hTxBSVamye0LYKs+RbvPC54DzjnfdCMFgFqtdoHbLArKHnEK18EAyifAhRuLjQ/TyaTZTCE8cfj2LzX7Xb/vcfjp3AjKDlaXJPNE0rCkMlwcyvSp8A1/j4SiXg2NE9InQLXhhtbmiekCoDNt0Dg73FKaPH3tyB7ERQ90W3iXi/1fp4MZL8szVvRyeJ2wUKkCoBD/OHMz9r9/S1I3QYzmcwct7cEfn2Ln18oyEds/jM4HA6Hw+Gwkd+zoVs3AKJk+gAAAABJRU5ErkJggg==" alt=""></div>
+            </div>
+            <div class="entrance-card" onclick="openRectifyList()">
+                <div class="entrance-icon"></div>
+                <div class="entrance-info">
+                    <div class="entrance-title">停工整改复核</div>
+                    <div class="entrance-desc" id="homeDescRectify">待处理 2 个</div>
+                </div>
+                <span class="entrance-badge" id="moduleBadgeRectify" style="display:none;">0</span>
+                <div class="entrance-arrow"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAA0JJREFUeAHtmjuOGkEQhgswYIhw5hBnTpAYSBwuN1hOYAh4RR5CR4bMGWyGgGBuwDqyM3DmBJYjcIR1ADKIh6tQI9kS3YDUL9n9SWhYpqRV/dOP/58ZAIfD4XA4/ltCIJlqtdo5HA6lUCj0jH8G/X6/DRYTAYlQ83jwsfmXeEzh5y6fz8N0Ov0OlhIGidCVP/NzC4X5BJYiVQABJMJ7sBCpAoTD4bngdGCjCFIFWK/XRTwsBCXdSqWSBYuQKkAQBM84CgrAFyGFC+S4Xq+nwRKkrwG9Xm9xSYT9fm+NCNJ9wAk21Md4xVOckqNQJBgYRJkABImAAjwJShabzcajqQOGULoNDgaDOXqDsqAkHYvFxqVSKQWGUO4DUIQAD01BSTYajXbAEFKtMA+0wj/QEtN0uzt3HqdJNpfLpWez2RfQjBYBCBRhckkEE7lBmwAEiYBX+hU2+45Toj08aRWAwGH+zfO8N3TFOSUkwk+aNqABXWHoL7bbrY8HUW7o6MoNSn2ACNr6aAvEr9xswIzSBBRiZAQQLDcIwxNa5pHq8GRMAOKa3IBrxUhlbjA2Bf6EGtztdk8mcoPREXCCNVZA28zLBGlVCdIKAQiWG4qCEhJhJDs3WCMAMRwOJxfCUzYej0vNDVYJQLDwxH2WgALdg0SsE4BxAE1YJ0Cj0SAH2OKdx53iESRilQBof+9xOwwEJfNEItEEiVjhAwhT9xC1p8FzsP39Kzb/mlOizAgZHwHUPJkc/JrmlCi9e2xUgEvNM2dYIJMEijAmgO/7qdVqRbfM07waFMBT2TxhZBdgzYuGPd0LKKtu/vh/wADL5ZLsrCjnt3HOB6CBF6AZ9hZJSVDS7vf7LdCE1hHA3hTxBSVamye0LYKs+RbvPC54DzjnfdCMFgFqtdoHbLArKHnEK18EAyifAhRuLjQ/TyaTZTCE8cfj2LzX7Xb/vcfjp3AjKDlaXJPNE0rCkMlwcyvSp8A1/j4SiXg2NE9InQLXhhtbmiekCoDNt0Dg73FKaPH3tyB7ERQ90W3iXi/1fp4MZL8szVvRyeJ2wUKkCoBD/OHMz9r9/S1I3QYzmcwct7cEfn2Ln18oyEds/jM4HA6Hw+Gwkd+zoVs3AKJk+gAAAABJRU5ErkJggg==" alt=""></div>
+            </div>
+            <div class="entrance-card" onclick="openDailyReportList()">
+                <div class="entrance-icon"></div>
+                <div class="entrance-info">
+                    <div class="entrance-title">商户每日报备</div>
+                    <div class="entrance-desc" id="homeDescReport">过期未报备 0 个</div>
+                </div>
+                <span class="entrance-badge" id="moduleBadgeReport" style="display:none;">0</span>
+                <div class="entrance-arrow"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAA0JJREFUeAHtmjuOGkEQhgswYIhw5hBnTpAYSBwuN1hOYAh4RR5CR4bMGWyGgGBuwDqyM3DmBJYjcIR1ADKIh6tQI9kS3YDUL9n9SWhYpqRV/dOP/58ZAIfD4XA4/ltCIJlqtdo5HA6lUCj0jH8G/X6/DRYTAYlQ83jwsfmXeEzh5y6fz8N0Ov0OlhIGidCVP/NzC4X5BJYiVQABJMJ7sBCpAoTD4bngdGCjCFIFWK/XRTwsBCXdSqWSBYuQKkAQBM84CgrAFyGFC+S4Xq+nwRKkrwG9Xm9xSYT9fm+NCNJ9wAk21Md4xVOckqNQJBgYRJkABImAAjwJShabzcajqQOGULoNDgaDOXqDsqAkHYvFxqVSKQWGUO4DUIQAD01BSTYajXbAEFKtMA+0wj/QEtN0uzt3HqdJNpfLpWez2RfQjBYBCBRhckkEE7lBmwAEiYBX+hU2+45Toj08aRWAwGH+zfO8N3TFOSUkwk+aNqABXWHoL7bbrY8HUW7o6MoNSn2ACNr6aAvEr9xswIzSBBRiZAQQLDcIwxNa5pHq8GRMAOKa3IBrxUhlbjA2Bf6EGtztdk8mcoPREXCCNVZA28zLBGlVCdIKAQiWG4qCEhJhJDs3WCMAMRwOJxfCUzYej0vNDVYJQLDwxH2WgALdg0SsE4BxAE1YJ0Cj0SAH2OKdx53iESRilQBof+9xOwwEJfNEItEEiVjhAwhT9xC1p8FzsP39Kzb/mlOizAgZHwHUPJkc/JrmlCi9e2xUgEvNM2dYIJMEijAmgO/7qdVqRbfM07waFMBT2TxhZBdgzYuGPd0LKKtu/vh/wADL5ZLsrCjnt3HOB6CBF6AZ9hZJSVDS7vf7LdCE1hHA3hTxBSVamye0LYKs+RbvPC54DzjnfdCMFgFqtdoHbLArKHnEK18EAyifAhRuLjQ/TyaTZTCE8cfj2LzX7Xb/vcfjp3AjKDlaXJPNE0rCkMlwcyvSp8A1/j4SiXg2NE9InQLXhhtbmiekCoDNt0Dg73FKaPH3tyB7ERQ90W3iXi/1fp4MZL8szVvRyeJ2wUKkCoBD/OHMz9r9/S1I3QYzmcwct7cEfn2Ln18oyEds/jM4HA6Hw+Gwkd+zoVs3AKJk+gAAAABJRU5ErkJggg==" alt=""></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 施工中商户列表 -->
+<div class="page-container" id="page-construction-list">
+    <div class="navbar">
+        <div class="nb-back nav-back" onclick="showPage('home')"></div>
+        <span class="nb-title nav-title">施工中商户</span>
+        <div class="nb-capsule"><div class="dots"></div><div class="circle"></div></div>
+    </div>
+    <div class="m-tabs-wrap tabs-container">
+        <div class="m-tabs tabs" id="constructionTabs">
+            <div class="tab active" data-tab="all" data-label="全部" onclick="switchConstructionTab('all')"><span class="m-tab-lbl">全部</span><span class="badge" id="constructionBadgeAll">4</span></div>
+            <div class="tab" data-tab="expiring" data-label="即将到期" onclick="switchConstructionTab('expiring')"><span class="m-tab-lbl">即将到期</span><span class="badge" id="constructionBadgeExpiring">1</span></div>
+            <div class="tab" data-tab="stopped" data-label="停工整改" onclick="switchConstructionTab('stopped')"><span class="m-tab-lbl">停工整改</span><span class="badge" id="constructionBadgeStopped">2</span></div>
+        </div>
+    </div>
+    <div class="filter-bar" id="constructionFilterBar">
+        <div class="fb-item" data-key="shop" onclick="openConstructionFilter('shop')">
+            <span class="fb-label">商铺号</span><span class="fb-arrow">▾</span>
+        </div>
+        <div class="fb-item" data-key="merchant" onclick="openConstructionFilter('merchant')">
+            <span class="fb-label">商户名称</span><span class="fb-arrow">▾</span>
+        </div>
+        <div class="fb-item" data-key="cert" onclick="openConstructionFilter('cert')">
+            <span class="fb-label">施工证号</span><span class="fb-arrow">▾</span>
+        </div>
+    </div>
+    <div class="filter-mask" id="constructionFilterMask" onclick="if(event.target===this)closeConstructionFilter()">
+        <div class="filter-spacer" id="constructionFilterSpacer"></div>
+        <div class="filter-panel" onclick="event.stopPropagation()">
+            <div class="fp-body">
+                <div class="fp-search-row">
+                    <div class="fp-search-box">
+                        <span class="fp-search-icon">🔍</span>
+                        <input type="text" class="fp-input" id="constructionFilterInput" placeholder="">
+                    </div>
+                    <span class="fp-cancel" onclick="closeConstructionFilter()">取消</span>
+                </div>
+                <button class="fp-btn fp-btn-query" onclick="doConstructionFilter()">查询</button>
+            </div>
+        </div>
+        <div class="filter-bg"></div>
+    </div>
+    <div class="task-scroll task-list" id="constructionTaskList"></div>
+</div>
+
+<!-- 施工详情 -->
+<div class="page-container" id="page-construction-detail">
+    <div class="navbar">
+        <div class="nb-back nav-back" onclick="showPage('construction-list')"></div>
+        <span class="nb-title nav-title">施工详情</span>
+        <div class="nb-capsule"><div class="dots"></div><div class="circle"></div></div>
+    </div>
+    <div class="page-scroll page-with-footer" id="constructionDetailContent"></div>
+    <div class="bottom-bar" id="constructionDetailBtns"></div>
+</div>
+
+<!-- 巡检列表 -->
+<div class="page-container" id="page-inspect-list">
+    <div class="navbar">
+        <div class="nb-back nav-back" onclick="showPage('home')"></div>
+        <span class="nb-title nav-title">巡检任务</span>
+        <div class="nb-capsule"><div class="dots"></div><div class="circle"></div></div>
+    </div>
+    <div class="m-tabs-wrap tabs-container">
+        <div class="m-tabs tabs" id="inspectTabs">
+            <div class="tab active" data-tab="today" data-label="今日待检" onclick="switchInspectTab('today')"><span class="m-tab-lbl">今日待检</span><span class="badge">3</span></div>
+            <div class="tab" data-tab="recheck" data-label="今日待复检" onclick="switchInspectTab('recheck')"><span class="m-tab-lbl">今日待复检</span><span class="badge">1</span></div>
+            <div class="tab" data-tab="done" data-label="已巡检" onclick="switchInspectTab('done')"><span class="m-tab-lbl">已巡检</span></div>
+            <div class="tab" data-tab="overdue" data-label="过期未检" onclick="switchInspectTab('overdue')"><span class="m-tab-lbl">过期未检</span><span class="badge">2</span></div>
+        </div>
+    </div>
+    <div class="task-scroll task-list" id="inspectTaskList"></div>
+</div>
+
+<!-- 巡检执行 -->
+<div class="page-container" id="page-inspect-form">
+    <div class="navbar">
+        <div class="nb-back nav-back" onclick="showInspectFormBack()"></div>
+        <span class="nb-title nav-title">开始巡检</span>
+        <div class="nb-capsule"><div class="dots"></div><div class="circle"></div></div>
+    </div>
+    <div class="page-scroll page-with-footer" id="inspectFormContent"></div>
+    <div class="bottom-bar">
+        <button class="btn btn-outline-green btn-outline" onclick="showInspectFormBack()">取消</button>
+        <button class="btn btn-primary btn-fill" onclick="submitInspect()">提交巡检</button>
+    </div>
+</div>
+
+<!-- 巡检详情（已巡检只读） -->
+<div class="page-container" id="page-inspect-detail">
+    <div class="navbar">
+        <div class="nb-back nav-back" onclick="showPage('inspect-list')"></div>
+        <span class="nb-title nav-title">巡检记录</span>
+        <div class="nb-capsule"><div class="dots"></div><div class="circle"></div></div>
+    </div>
+    <div class="page-scroll page-with-footer" id="inspectDetailContent"></div>
+    <div class="bottom-bar">
+        <button class="btn btn-outline-green btn-outline" onclick="showPage('inspect-list')">返回</button>
+    </div>
+</div>
+
+<!-- 停工整改复核列表 -->
+<div class="page-container" id="page-rectify-list">
+    <div class="navbar">
+        <div class="nb-back nav-back" onclick="showPage('home')"></div>
+        <span class="nb-title nav-title">停工整改复核</span>
+        <div class="nb-capsule"><div class="dots"></div><div class="circle"></div></div>
+    </div>
+    <div class="m-tabs-wrap tabs-container">
+        <div class="m-tabs tabs" id="rectifyTabs">
+            <div class="tab active" data-tab="pending" data-label="待商户整改" onclick="switchRectifyTab('pending')"><span class="m-tab-lbl">待商户整改</span><span class="badge">2</span></div>
+            <div class="tab" data-tab="review" data-label="待复核" onclick="switchRectifyTab('review')"><span class="m-tab-lbl">待复核</span><span class="badge">2</span></div>
+            <div class="tab" data-tab="rejected" data-label="复核驳回" onclick="switchRectifyTab('rejected')"><span class="m-tab-lbl">复核驳回</span></div>
+            <div class="tab" data-tab="closed" data-label="已复工" onclick="switchRectifyTab('closed')"><span class="m-tab-lbl">已复工</span></div>
+        </div>
+    </div>
+    <div class="task-scroll task-list" id="rectifyTaskList"></div>
+</div>
+
+<!-- 整改详情 -->
+<div class="page-container" id="page-rectify-detail">
+    <div class="navbar">
+        <div class="nb-back nav-back" onclick="showPage('rectify-list')"></div>
+        <span class="nb-title nav-title" id="rectifyDetailNavTitle">整改详情</span>
+        <div class="nb-capsule"><div class="dots"></div><div class="circle"></div></div>
+    </div>
+    <div class="page-scroll page-with-footer" id="rectifyDetailContent"></div>
+    <div class="bottom-bar" id="rectifyDetailBtns"></div>
+</div>
+
+<!-- 停工整改复核操作 -->
+<div class="page-container" id="page-rectify-review">
+    <div class="navbar">
+        <div class="nb-back nav-back" onclick="showPage('rectify-detail')"></div>
+        <span class="nb-title nav-title">停工整改复核</span>
+        <div class="nb-capsule"><div class="dots"></div><div class="circle"></div></div>
+    </div>
+    <div class="page-scroll page-with-footer form-page">
+        <div id="rectifyReviewSummary"></div>
+        <div class="sv-block">
+            <div class="sec-title" style="margin-left:0;"><span class="sec-label req-label">复核结果</span></div>
+            <div class="rev-row">
+                <span class="rev-btn rev-pass" id="reviewPassChip" onclick="setRectifyReviewResult('pass')">复核通过</span>
+                <span class="rev-btn" id="reviewRejectChip" onclick="setRectifyReviewResult('reject')">复核不通过</span>
+            </div>
+        </div>
+        <div class="sv-block">
+            <div class="sec-title" style="margin-left:0;"><span class="sec-label req-label">拍摄照片</span></div>
+            <p class="form-hint" id="rectifyReviewPhotoHint">请拍照或从相册选择（必填，相册一次最多可选9张，合计最多9张）。</p>
+            <div class="photo-upload-grid" id="rectifyReviewPhotoGrid"></div>
+        </div>
+        <div class="sv-block">
+            <div class="sec-title" style="margin-left:0;"><span class="sec-label" id="rectifyReviewOpinionLabel"><span class="req" id="rectifyReviewOpinionReq" style="display:none;">*</span> 复核意见</span></div>
+            <div class="sv-textarea-box" id="rectifyReviewOpinionBox">
+                <textarea class="sv-ta" id="rectifyReviewOpinion" placeholder="选填"></textarea>
+            </div>
+        </div>
+    </div>
+    <div class="bottom-bar">
+        <button class="btn btn-outline-green btn-outline" onclick="showPage('rectify-detail')">取消</button>
+        <button class="btn btn-primary btn-fill" onclick="submitRectifyReview()">提交复核</button>
+    </div>
+</div>
+
+<!-- 商户每日报备 -->
+<div class="page-container" id="page-merchant-report-list">
+    <div class="navbar">
+        <div class="nb-back nav-back" id="dailyReportListBack" onclick="dailyReportListBack()"></div>
+        <span class="nb-title nav-title" id="dailyReportListTitle">商户每日报备</span>
+        <div class="nb-capsule"><div class="dots"></div><div class="circle"></div></div>
+    </div>
+    <div class="m-tabs-wrap tabs-container">
+        <div class="m-tabs tabs" id="dailyReportTabs">
+            <div class="tab active" data-tab="reported" onclick="switchDailyReportTab('reported')"><span class="m-tab-lbl">已报备</span><span class="badge" id="dailyReportBadgeReported">0</span></div>
+            <div class="tab" data-tab="overdue" onclick="switchDailyReportTab('overdue')"><span class="m-tab-lbl">过期未报备</span><span class="badge" id="dailyReportBadgeOverdue">0</span></div>
+        </div>
+    </div>
+    <div class="task-scroll task-list" id="dailyReportTaskList"></div>
+</div>
+
+<!-- 报备详情 -->
+<div class="page-container" id="page-merchant-report-detail">
+    <div class="navbar">
+        <div class="nb-back nav-back" onclick="showPage('merchant-report-list')"></div>
+        <span class="nb-title nav-title">报备详情</span>
+        <div class="nb-capsule"><div class="dots"></div><div class="circle"></div></div>
+    </div>
+    <div class="page-scroll page-with-footer" id="dailyReportDetailContent"></div>
+    <div class="bottom-bar">
+        <button class="btn btn-outline-green btn-outline" onclick="showPage('merchant-report-list')">返回</button>
+    </div>
+</div>
+
+</div><!-- .shell -->
+
+<!-- 电子施工证 -->
+<div class="modal-overlay" id="certModal" onclick="if(event.target===this)closeCertModal()">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="modal-title">电子施工证</span>
+            <span class="modal-close" onclick="closeCertModal()">&times;</span>
+        </div>
+        <div class="modal-body" id="certModalBody"></div>
+        <div class="modal-footer">
+            <button class="btn btn-outline-green btn-outline" onclick="closeCertModal()">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- 附件预览 -->
+<div class="modal-overlay" id="filePreviewModal" onclick="if(event.target===this)closeFilePreviewModal()">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="modal-title">文件预览</span>
+            <span class="modal-close" onclick="closeFilePreviewModal()">&times;</span>
+        </div>
+        <div class="modal-body" id="filePreviewBody"></div>
+        <div class="modal-footer">
+            <button class="btn btn-outline-green btn-outline" onclick="closeFilePreviewModal()">关闭</button>
+            <button class="btn btn-primary btn-fill" id="filePreviewDownloadBtn" onclick="downloadCurrentPreviewFile()">下载</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var currentConstructionTab = 'all';
+    var constructionFilterDefs = [
+        { key: 'shop', label: '商铺号', placeholder: '请输入商铺号' },
+        { key: 'merchant', label: '商户名称', placeholder: '请输入商户名称' },
+        { key: 'cert', label: '施工证号', placeholder: '请输入施工证号' }
+    ];
+    var constructionFilterValues = { shop: '', merchant: '', cert: '' };
+    var constructionActiveFilter = null;
+    var currentInspectTab = 'today';
+    var currentRectifyTab = 'pending';
+    var currentDailyReportTab = 'reported';
+    var currentDailyReportApplyId = '';
+    var currentConstructionId = '';
+    var currentInspectId = '';
+    var currentRectifyId = '';
+    var rectifyReviewResult = 'pass';
+    var rectifyReviewPhotos = [];
+    var RECTIFY_REVIEW_PHOTO_MAX = 9;
+    var inspectFormBackTarget = 'inspect-list';
+    var inspectRectifyType = 'onsite';
+    var inspectFormPhotos = [];
+    var INSPECT_PHOTO_MAX = 9;
+    var currentPreviewFileName = '';
+
+    var DATA_ICON_FILE_IMG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAABSJJREFUeAHtnT9sG1UYwL93rq2QIGpLCQOLjdQO7UBaKQtLqMSSSCmq1KlIkHpqNxBiAYHqioWBITDB5AYGFioBLWOl0LlSKKBmjN2Jkqp2qsaVEt9d33eRWyf1ne/Pu/fdn+8nRUr0Lony/d773nffu9gCQnKu2SlbBizbNpyRX56SHzVIIe/PTjQunH7lKhAhICAy8LU+WA0hjGXIABdmJzAIZBKMIBe/t9r5yBSwnpXgD7ClgJ/Xn14BAnwLWFrtXJHpZkV+WoYMQiXBlwAMvrChARmHQsJYAWebDy/mIfgDdEsYvwJEgSQ3UqJTgqcAnP2Q0vIyKrokeK+AHM7+YXRIcBUg6/3U3lypJG4JrgJMME8B4xCnBMP9l4oaMM+JS4LXHlAD5gBxSAjUimDUS2ABIVApgQWERJUEFhABFRJYQESiSmABCogigQUoIqyE3AvY2bVBFWEk5F7AgycWqCSohNwL2OyYoJogEnIv4H+5Av550AfV+JXAm7Dk3//6jgSV+wHiR8IRYBxQwuYjE15/1YDyhAGlAqii8enN7e1vlo6ujBpkAUPgCkAJeBqimFm3AU5BxLAAYlgAMSyAGBZADAsghgUQwwKIYQHEsABiWAAxLIAYFkAMCyCGBRDDAohhAcQk4kRssggw98b+XGhv29Duqj2bTTLkAs6fKMD5kwcPYG+3Tfjxrgm9Pcg8pClo4ZjxUvCR+WoBPnk7H8fVpH/l4jH3Rw9OzhhwYkbAxpaedIS/q3pUwFRRwJ/3TXi4A1ogEzAzKWBmSoy9ZgPiF/DBWwVYPP5iMuDnX93e07IXkaWgnb3xf1xvN/4AXJ47GHwEiwKUogMyAbjB3tvyfjC2/RhiBYOP+80oxq1OVZBuwtc3TM+xrZ34VoBX8HVCKgA32M9u7UGr+2IlYGr66W8Trt9T/9TyACx9kxB8hLzWw43u81t9mXdlBVKCWGc9Muq+g5LEFNs9OfPjvvFKWvCR3PSCkhh8JBcC5qtGIoOPZF4ANvkuzyW3rZFpAdUywKW5ZM78AZkVMD0J8MV80entJJnECcCm2CWZMjBvhwWD/2UKgo8kKjli0Af5+h1n47SdpliQzuQg+LpaCVFJzArAwGGpOAx2Q79+t+TZtj78M9IUfCQxAnDmjwqc05mcLTi9m+kp9+/H69IWfCQRAnDm4wGMF9i7wQAPzo6HSWvwEXIBTurxeZOEKQmPKj881KvH4FfL6Qs+QipgMHODsiAPUL5dLDopCVNTWoOPkFZBmHrCpg1cDd8tlCDtkK0ALDkPHwXmERIBo0rOvEIiwK3kzCPaBfgpOfOE1kgEKTnzgjYBYUvOrKNNQJSSM8toEcAlpztaBCwc503XDS2R6e1C6tD1VLaWVsQPd0xZ/cjTrulge8BWj+Y/Ze53AX7ZiO/JvGG0CMBAfn9H/WtzZgFOzsSwAGJYADEsgBgvAS1glGDbVtttzFWABXYLGCUYRnHTdcxtoASFNWCU0LfMu25jnndGS9c66/ICflPPaLRuXKy86TbovQnb1m/AREKIQsNr3FPAETDwNe9bwISl9fvya6teF3gK+LVe6do21IEJxbjZj4y9D7hZr6xJCVeBCYSQMRs3+53rwCdLzU5DCIjlXaWzhhP8eqXh61oIwNlm52PYl1AGZhRdSwb/j3plxe83BGpF3JA/uGDDaXlnN3Zp5ZBrGJsgwUdCn5Kfa3Zq8sjijC1gWey//XkN8kVLfvwlhLFmWNYqFiwQgmdJm5R6X2CKlgAAAABJRU5ErkJggg==';
+    var DATA_ICON_FILE_PDF = 'data:image/png;base64,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';
+    var DATA_ICON_PREVIEW = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAACWFJREFUeAHtnd1SFEcUx0/37mLACBiNwU9WErEsjSwXuUiiCE8g3kXUUp9AfQLxCYQnUONHLsUHSKGYihde7BJjWaIla8TyIxJxIxBgtzt9ZpmE2u3d6Znpnh1gflUU1DKwu+ff56NP9/QCRERERERERERERESsNgiEmEvD6eY1AN08TluB8BRwmiScJ/F3nEBy6bUcYEq8max4S1NAWFZckGF5NpoHyJzu6ZyCkBIqAdDgcYAUjdNewuFwqZF9kAFCMmShcKuvp3MIQkQoBLg6nO6mCXKSc9IrXlAzGMTyFEKG2ELhyomezttQY2omAI72T+LxMwVgZ00bvQpZQqC/70DHFagRgQsQEsOXkiWMDfYd6hyAgAlUgBsj6V5O6EXxYxLCSeAeEYgAYtQn6+KxSyICd8MygAAZmssXzonqKQuGoWCY63dHzyTiNL1cjI9w4L114jXf+GX0JBjGmAdYNXwsdp4TfhaWMaJiGug7sP8cGMKIAFbISdCbYiilYGWQmc+zIyZCknYBivGeDkN4E61XskKEHt0iaBVgBRvfRrsI2gRYBca30SqCFgFWkfFttImgpQy1Eu7qMT6CA+4mVnrgE98C3Bj57eIKqnbckFqTiJ0Hn/gKQddH0qeA0EuwihE9pHN+ekieBcC4jzPcEDXUasWUyAedXvOB5xBUFycXI+NbNBf7XN7w5AFBhx7hadBYXw8bGtdCw5o662spC4UCfJiehcncNORmZ2EhzyBoCGdH+rrcr7Z5E+Du6DgEUPW0rG+EtpaNluHd8Pp9Dl7/lYMX795DgGQXQ5Gr9ec4uAS7m2DY+Ns3rof2bZvKRroqKBx+4f8Ym3gblBDJOKXYeOx380euPcDk6G9Yk4BU23bXI96Jmbl5uPfomfi+AIbBhLzTjRe4SsJW7DdkfAw1Xft2aTc+gp7U9fUu6zkM07zoBcq4C0GE+p54yGjf9gXs3rqp6jUL+YKI7R8gNzNnjWhMvDZNDSJBr2uAxrX1FcNWIhaDva2bre+PX74BU1AKGKL7Va9XDkHW1pFiv0crTsZ/l/sIYy/fWhWOCuhB+P82NH5a8RrMCyZFYMB6ThxU2/Ki7AEkRk+BZjAkVDI+jvLMswllw9vg9b/mxq0kjCNe5hGYnGfm5+HFn2aSMyUElzJvK10LqhA4DBrBhNtewfhomJHfn7o2/lKwFB158NQqR2UUxUmAETjpVW3UKQnw40ha+461b/e0iQlWrOzxsYk31sjHmO8XzBP3nzyHZ6/flf0OcwFWXIZojsfVGpRKAlCgvaARrPNloQFH62MR73Xz8PkrqSdgvsBQZQLK1GymFoIodIBGMAaXYsX88QkwBXoVPkfZa3GovjxD1UK2owAYy4jGfn+l0Y+jVEfYqQSGIxShlKa1WMLqn3sIkip5wFEA3C4OGtn++fqyxyZFqYlJ0zSY1GWJXfaadFBfFzvkdI2jAITqEwATn2ym+3hCf9yvhKz+b/nMTB7I5ws7na5RyQHaBGhc+0nZYxiXJ//2Xm66BT2gNNRZA8NAGCIx4pg7FTyAtIImZG8yN/MPBI1McNng8AvnNOl0jaMAnBBt9T8mvFKw1RA0k5Ln9Nr6rgaB4v1s1XAOQVxf9xNdvZTcdPAeMC9ZMZO9tiBwDkErcN13dr58PmCoLZF0usD4/QER1am5ALJ+kPHnlISbhULwC/lIoALIWgH1pjqSVWhskJfDtUAlCWdBE7mZ2bLHcDUraGTVmCEBHNeGA/WAD5Ka39QstBrS+YiZaizrdIGzAIRnQRP4JoOahVYCm4GleQcbdSZm4xzPrXDAeSLG+HPQBL5R2cx3t1gXDgpZ463SqplfCB4a4oBKCMqARmTNMGzQBeEFOPplzUBTa8O8wEedrnEUgBF9SRjBZpgs4aW+3Ga0JLXWoCssBJlqBnLqPHgdBRBR4zZoZkyy7Ii9mFTbNjDF3h1bpP2esZfmWuH5vAYBrG12XK8XoMvLFkasrSQ7NoNu9rVukVZb+DpMhR9QPChKqQxlnN0CzVTa+dC2eSN8096qLRw1iTbzzpYNZY9j6DE5+kX1qJQ7VRfltZ8yhQZ4+Mcr6e/QE7r2fWUlTb/Eq3Y5OZgiRqiSzZQEwFjGFWZ1bkH3r7RF0MoJIjF/t6fN1dYRrKYwl+BuB0y8OPeQJX38/7g3yVAXdOqH7/crRQ3lvaHX7qQvE0qNnB6C1cnurdXnAmhEnENMfpgWM+r/WxoYqhrq6qwVLRRqaejCmffIgyeLxt4pTcJGtq4TfvnYgdRplUuV94aKkuqyUMuIALhZNi+6ke1bNlWM/fatSW68oUk03bDxhsLdezQuFcH2BJ0iMM6VD3xS7gXhbl8TYcjm2at31n5QU13J4kgfNx+ORMWoujMacdWM44wNgkHQOD9nHlfcxeYW3BO6tPURhAiEGrxFCXd6JeJ0PKhlSuzbtDSvEzV8k/LfYGmLOaLaPQXVcgJuELs/5rH9JUb/sa4Ox71AS3F1hwxOLK7eSQ+KZGzkTplS7IkS5gWM5Vjh4AgtNVwxQc9ZhscR77TF0fYEmQiJmPcOPafuI4Trm/TQC+piNA36TrWtGTJPwD2qsu3sjngY/YhrudELCsCMnaEWJLYnFFsjH605iSfjg/vY/9/fgUeu380Miz/vhggBHzp2MHUEPOA54NE8P22yLF0ucA5TwhaeI4JnAY7i6SCMXYBVDqVw9qiPk7N8LcofP9Q5wMDs3CDkDPo95tj3rgjRqOsHzcuWy4TMsYMdvg+l9S0AVkU0z47oXrQJNeK9Wu9ZA9qOrfxpOJ1kMTq8EuYHVUHjF1jP0TAdW2mz4kXQbHxE+9HFK1YEA8ZHtG9NxBeILxRWVmLOmDA+YvQDHK7eTQ9QoGdgeTM4n2f9pj4Ky6gACB7yhB9bstzutMEZLlB24fgBs58rY1wAxMoLcXJRPJ3WMydMwYHfjolWi4mQU0ogAtgUjzwTawlhTdAi0RLR6fVy/KRXAhXA5tqd9FlCRG4IiRAYbjhhg2JWPxD0xx7WRACbWntELQ1vU1MBbES11E04nBJiHCbE8EcZotEpHxI/XHGze8EUoRBgKXg6l5ic9AIhHQSInnMqsE9F2C0GMIS7/ML06aqhE2Ap1qerxiEl5hIdjPAUKd613wycJMs8ZbEZyAnPciJmrZxkCpw9x+31Yf4424iIiIiIiIiIiIiI1ce/74b4qvJpCi8AAAAASUVORK5CYII=';
+    var DATA_ICON_DOWNLOAD = 'data:image/png;base64,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';
+    var DATA_UPLOADED_IMAGE = 'data:image/png;base64,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';
+
+    var FILE_ICON_PDF = '<svg class="file-icon-img" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" fill="#E74C3C" opacity=".15"/><path d="M14 2v6h6M8 13h8M8 17h5" stroke="#E74C3C" stroke-width="1.5" stroke-linecap="round"/></svg>';
+    var FILE_ICON_IMG = '<svg class="file-icon-img" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="18" height="14" rx="2" fill="#1890FF" opacity=".15"/><circle cx="9" cy="10" r="2" fill="#1890FF"/><path d="M3 17l5-5 4 4 3-3 6 6" stroke="#1890FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    var FILE_ICON_PREVIEW = '<svg class="file-action-img" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="#1890FF" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="#1890FF" stroke-width="1.8"/></svg>';
+    var FILE_ICON_DOWNLOAD = '<svg class="file-action-img" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12M7 10l5 5 5-5" stroke="#1ABA6C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20h16" stroke="#1ABA6C" stroke-width="1.8" stroke-linecap="round"/></svg>';
+
+    function fileTypeFromName(name) {
+        return /\.(jpg|jpeg|png|gif|webp)$/i.test(name || '') ? 'img' : 'pdf';
+    }
+    function escapeFileJs(name) {
+        return (name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+    function buildFileItemHtml(fileName) {
+        var safe = escapeFileJs(fileName);
+        var iconSrc = fileTypeFromName(fileName) === 'img' ? DATA_ICON_FILE_IMG : DATA_ICON_FILE_PDF;
+        return '<div class="file-item">'
+            + '<img class="file-icon-img" src="' + iconSrc + '">'
+            + '<span class="file-name">' + fileName + '</span>'
+            + '<div class="file-actions">'
+            + '<img class="file-action-img" src="' + DATA_ICON_PREVIEW + '" title="查看" onclick="event.stopPropagation();previewInspectFile(\'' + safe + '\')">'
+            + '<img class="file-action-img" src="' + DATA_ICON_DOWNLOAD + '" title="下载" onclick="event.stopPropagation();downloadInspectFile(\'' + safe + '\')">'
+            + '</div></div>';
+    }
+    window.previewInspectFile = function(name) {
+        currentPreviewFileName = name;
+        var isImg = fileTypeFromName(name) === 'img';
+        var body = document.getElementById('filePreviewBody');
+        if (body) {
+            body.innerHTML = isImg
+                ? '<div class="file-preview-placeholder"><span style="font-size:40px;">🖼</span><span class="file-preview-name">' + name + '</span><span>图片预览（原型占位）</span></div>'
+                : '<div class="file-preview-placeholder"><span style="font-size:40px;">📄</span><span class="file-preview-name">' + name + '</span><span>PDF 文档预览（原型占位）</span></div>';
+        }
+        document.getElementById('filePreviewModal').classList.add('active');
+    };
+    window.downloadInspectFile = function(name) {
+        alert('原型：下载文件「' + name + '」');
+    };
+    window.closeFilePreviewModal = function() {
+        document.getElementById('filePreviewModal').classList.remove('active');
+        currentPreviewFileName = '';
+    };
+    window.downloadCurrentPreviewFile = function() {
+        if (currentPreviewFileName) downloadInspectFile(currentPreviewFileName);
+    };
+
+    function secTitle(text) {
+        return '<div class="sec-title"><span class="sec-bar"></span><span class="sec-label">' + text + '</span></div>';
+    }
+
+    function buildStatusBanner(type, title, desc) {
+        return '<div class="status-banner status-banner-' + type + '">'
+            + '<div class="status-banner-icon"><span>!</span></div>'
+            + '<div class="status-banner-body">'
+            + '<div class="status-banner-title">' + title + '</div>'
+            + '<div class="status-banner-desc">' + desc + '</div>'
+            + '</div></div>';
+    }
+
+    function mkCardBtn(label, onclick, type) {
+        type = type || 'fill';
+        var chars = label.split('');
+        var w = chars.length <= 4 ? 'btn-short' : 'btn-long';
+        var cls = type === 'fill' ? 'card-btn-fill' : 'card-btn-outline';
+        return '<button class="' + cls + ' ' + w + '" onclick="' + onclick + '">' + label + '</button>';
+    }
+
+    function updateTabBadge(tabEl, count) {
+        if (!tabEl) return;
+        var label = tabEl.getAttribute('data-label') || (tabEl.querySelector('.m-tab-lbl') ? tabEl.querySelector('.m-tab-lbl').textContent : tabEl.textContent.trim());
+        if (count > 0) {
+            tabEl.innerHTML = '<span class="m-tab-lbl">' + label + '</span><span class="badge">' + count + '</span>';
+        } else {
+            tabEl.innerHTML = '<span class="m-tab-lbl">' + label + '</span>';
+        }
+    }
+
+    var constructionData = [
+        {
+            id: 'RX202605010001', merchant: '瑞丰汽配', shop: 'B10', certNo: 'SZ202605010015', period: '2026-05-01 至 2026-06-15', planPeriod: '2026-05-01 至 2026-06-30', level: 'II级',
+            tags: ['门头广告', '基建改造', '消防系统', '电气改造'], projects: '招牌更换、隔墙拆除', daysLeft: 25, tab: 'active', contact: '张经理 139****5678', stopped: true, stopReason: '巡检异常-停工整改：消防通道占用', stopTime: '2026-05-20 14:00',
+            categoryItems: [
+                { name: '门头广告', dept: '物业部', projects: [{ name: '招牌更换', level: 'II级' }, { name: '灯箱安装', level: 'II级' }] },
+                { name: '基建改造', dept: '物业部', projects: [{ name: '隔墙拆除', level: 'II级' }, { name: '地面找平', level: 'I级' }] },
+                { name: '消防系统', dept: '安保部', projects: [{ name: '消防栓移位', level: 'III级' }] },
+                { name: '电气改造', dept: '管理部', projects: [{ name: '电表安装', level: 'II级' }, { name: '水表读数确认', level: 'I级' }] }
+            ],
+            decorateRemark: '门面升级改造，更换招牌并调整消防设施位置'
+        },
+        {
+            id: 'RX202605030001', merchant: '嘉诚名车', shop: 'D07', certNo: 'SZ202605060016', period: '2026-05-05 至 2026-06-20', planPeriod: '2026-05-05 至 2026-07-01', level: 'III级',
+            tags: ['消防系统', '电气改造'], projects: '消防栓移位、电路改造', daysLeft: 5, tab: 'expiring', contact: '王经理 137****9900', stopped: false,
+            categoryItems: [
+                { name: '消防系统', dept: '安保部', projects: [{ name: '消防栓移位', level: 'III级' }] },
+                { name: '电气改造', dept: '管理部', projects: [{ name: '电路改造', level: 'II级' }, { name: '电表读数确认', level: 'I级' }] }
+            ],
+            decorateRemark: '消防设施调整及电气线路改造，须按专项方案施工'
+        },
+        {
+            id: 'RX202605110001', merchant: '北京拿铁旧机动车', shop: 'B08', certNo: 'SZ202605110001', period: '2026-05-11 至 2026-05-18', planPeriod: '2026-05-11 至 2026-06-30', level: 'II级',
+            tags: ['门头广告', '基建改造', '消防系统', '电气改造'], projects: '隔墙拆除、地面找平', daysLeft: -2, tab: 'active', contact: '王经理 138****1234', stopped: true, stopReason: '逾期停工', stopTime: '2026-05-19 00:00',
+            categoryItems: [
+                { name: '门头广告', dept: '物业部', projects: [{ name: '招牌更换', level: 'II级' }, { name: '灯箱安装', level: 'II级' }] },
+                { name: '基建改造', dept: '物业部', projects: [{ name: '隔墙拆除', level: 'II级' }, { name: '地面找平', level: 'I级' }] },
+                { name: '消防系统', dept: '安保部', projects: [{ name: '消防栓移位', level: 'III级' }] },
+                { name: '电气改造', dept: '管理部', projects: [{ name: '电表安装', level: 'II级' }, { name: '水表读数确认', level: 'I级' }] }
+            ],
+            decorateRemark: '门面升级改造，更换招牌并调整消防设施位置'
+        },
+        {
+            id: 'RX202605120002', merchant: '红星车行', shop: 'A08', certNo: 'SZ202605100018', period: '2026-05-10 至 2026-06-30', planPeriod: '2026-05-10 至 2026-06-30', level: 'I级',
+            tags: ['门头广告'], projects: '招牌更换', daysLeft: 40, tab: 'active', contact: '李经理 136****5566', stopped: false,
+            categoryItems: [
+                { name: '门头广告', dept: '物业部', projects: [{ name: '招牌更换', level: 'I级' }] }
+            ],
+            decorateRemark: '户外招牌更换，须符合市场门头管理规范'
+        }
+    ];
+
+    var specialWorkMeta = {
+        fire: { label: '动火作业', cls: 'special-fire' },
+        height: { label: '高空作业', cls: 'special-height' },
+        electric: { label: '临时用电', cls: 'special-electric' }
+    };
+    var specialWorkOrder = ['fire', 'height', 'electric'];
+    var specialWorkTodayByApply = {
+        'RX202605110001': ['fire', 'electric'],
+        'RX202605010001': ['fire', 'height'],
+        'RX202605030001': ['electric'],
+        'RX202605120002': ['height']
+    };
+    var merchantSelfCheckByApply = {
+        'RX202605110001': {
+            fire: {
+                reported: true, reportTime: '2026-05-20 07:30',
+                content: '动火点周围10米可燃物已清理，配备灭火器2具，监护人李师傅在场，动火时段 09:00~12:00',
+                certs: ['动火作业证_王焊工.pdf', '动火点现场.jpg']
+            },
+            electric: {
+                reported: true, reportTime: '2026-05-20 07:45',
+                content: '临时用电线路已穿管保护，漏电保护器检测正常，总负荷约8kW，用电点位2处',
+                certs: ['电工操作证_张电工.pdf', '配电箱近景.jpg', '临时用电方案.pdf']
+            }
+        },
+        'RX202605010001': {
+            fire: {
+                reported: true, reportTime: '2026-05-20 08:00',
+                content: '焊接作业区域已设警戒带，灭火器已就位，动火监护人张工已到岗',
+                certs: ['动火作业证_李焊工.pdf', '动火方案.pdf']
+            },
+            height: {
+                reported: false
+            }
+        },
+        'RX202605030001': {
+            electric: {
+                reported: true, reportTime: '2026-05-20 08:15',
+                content: '施工区临时用电已验收，线路架空敷设，配电箱上锁管理',
+                certs: ['电工操作证_孙电工.pdf']
+            }
+        },
+        'RX202605120002': {
+            height: {
+                reported: false
+            }
+        }
+    };
+
+    var categoryDeptMap = {
+        '门头广告': '物业部',
+        '消防系统': '安保部',
+        '基建改造': '物业部',
+        '电气改造': '管理部',
+        '给排水': '物业部'
+    };
+    var MY_INSPECT_DEPT = '物业部';
+
+    function formatProjectLabel(p) {
+        if (typeof p === 'string') return p;
+        if (p && p.name) return p.level ? (p.name + ' (' + p.level + ')') : p.name;
+        return '';
+    }
+    function formatProjectsText(projects) {
+        var list = (projects || []).map(formatProjectLabel).filter(Boolean);
+        return list.length ? list.join('、') : '—';
+    }
+    function mapCategoryItem(item, scene) {
+        var dept = item.dept || item.department || categoryDeptMap[item.name] || '—';
+        var projects = item.projects || item.projectNames || [];
+        var isConstruction = scene === 'construction';
+        return {
+            name: item.name,
+            dept: dept,
+            isMyDept: dept === MY_INSPECT_DEPT,
+            projects: projects,
+            projectsText: formatProjectsText(projects),
+            statusText: item.statusText || (isConstruction ? '施工中' : '待踏勘'),
+            statusClass: item.statusClass || (isConstruction ? 'stag-construction' : 'stag-warn')
+        };
+    }
+
+    function getConstructionCategoryItems(c, scene) {
+        scene = scene || 'inspect';
+        if (!c) return [];
+        if (c.categoryItems && c.categoryItems.length) {
+            return c.categoryItems.map(function(item) { return mapCategoryItem(item, scene); });
+        }
+        if (!c.tags || !c.tags.length) return [];
+        var projectList = (c.projects || '').split('、').map(function(s) { return s.trim(); }).filter(Boolean);
+        if (c.tags.length === 1) {
+            var dept0 = categoryDeptMap[c.tags[0]] || '—';
+            return [mapCategoryItem({ name: c.tags[0], dept: dept0, projects: projectList.slice() }, scene)];
+        }
+        if (c.tags.length === projectList.length) {
+            return c.tags.map(function(tag, i) {
+                var dept = categoryDeptMap[tag] || '—';
+                return mapCategoryItem({ name: tag, dept: dept, projects: projectList[i] ? [projectList[i]] : [] }, scene);
+            });
+        }
+        var result = c.tags.map(function(tag) {
+            var dept = categoryDeptMap[tag] || '—';
+            return mapCategoryItem({ name: tag, dept: dept, projects: [] }, scene);
+        });
+        projectList.forEach(function(p, i) {
+            var idx = i < result.length ? i : result.length - 1;
+            result[idx].projects.push(p);
+            result[idx].projectsText = formatProjectsText(result[idx].projects);
+        });
+        return result;
+    }
+
+    function getInspectTaskDept(item) {
+        if (!item) return '—';
+        return item.department || resolveInspectCategoryDept(item.applyId).department;
+    }
+    function isMgmtDeptInspectTask(item) {
+        return getInspectTaskDept(item) === '管理部';
+    }
+
+    function getInitialInspectInfo(item) {
+        if (!item || (!item.isRecheck && !item.abnormalText)) return null;
+        return {
+            result: item.firstInspectResult || (item.abnormalText ? '存在异常' : '正常'),
+            abnormalText: item.abnormalText || '—',
+            rectifyType: item.rectifyType || '—',
+            inspectDescription: item.firstInspectDescription || item.initialInspectDescription || '',
+            inspectTime: item.inspectTime || '—',
+            person: item.firstInspectPerson || item.initialPerson || item.person || '—',
+            photos: item.firstInspectPhotos || item.initialInspectPhotos || []
+        };
+    }
+
+    function buildInitialInspectResultHtml(item) {
+        var info = getInitialInspectInfo(item);
+        if (!info) return '';
+        var isAbnormal = info.result && info.result.indexOf('异常') >= 0;
+        var resultColor = isAbnormal ? 'var(--danger)' : 'var(--primary)';
+        var html = '<div class="detail-section">' + secTitle('初检结果');
+        html += '<div class="detail-row"><span class="detail-label">结果</span><span class="detail-value" style="color:' + resultColor + ';">' + info.result + '</span></div>';
+        if (info.abnormalText && info.abnormalText !== '—') {
+            html += '<div class="detail-row" style="align-items:flex-start;"><span class="detail-label">异常说明</span><span class="detail-value" style="color:var(--danger);flex:1;line-height:1.6;">' + info.abnormalText + '</span></div>';
+        }
+        if (info.rectifyType && info.rectifyType !== '—') {
+            html += '<div class="detail-row"><span class="detail-label">整改类型</span><span class="detail-value">' + info.rectifyType + '</span></div>';
+        }
+        html += '<div class="detail-row"><span class="detail-label">巡检时间</span><span class="detail-value">' + info.inspectTime + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">巡检人</span><span class="detail-value">' + info.person + '</span></div>';
+        if (info.inspectDescription) {
+            html += '<div class="detail-row" style="align-items:flex-start;"><span class="detail-label">巡检描述</span><span class="detail-value" style="flex:1;line-height:1.6;">' + info.inspectDescription + '</span></div>';
+        }
+        html += '<div class="detail-row" style="align-items:flex-start;"><span class="detail-label">现场照片</span><span class="detail-value" style="flex:1;">';
+        if (info.photos && info.photos.length) {
+            html += '<div class="photo-upload-grid">';
+            info.photos.forEach(function(p) {
+                html += '<div class="photo-upload-box" style="background:#f0f0f0;cursor:pointer;" onclick="alert(\'照片预览：' + p + '（原型占位）\')" title="' + p + '">&#128247;</div>';
+            });
+            html += '</div>';
+        } else {
+            html += '<span style="color:var(--t3);">暂无照片</span>';
+        }
+        html += '</span></div>';
+        html += '</div>';
+        return html;
+    }
+
+    function renderInspectCategoryCatItem(cat, showStatus) {
+        var html = '<div class="cat-item">';
+        html += '<div class="cat-hd">';
+        html += '<span class="cat-name">' + cat.name + '</span>';
+        if (cat.isMyDept) html += '<span class="my-dept-tag">本部门负责</span>';
+        if (showStatus !== false) html += '<span class="stag ' + cat.statusClass + '" style="margin-left:auto;">' + cat.statusText + '</span>';
+        html += '</div>';
+        html += '<p class="cat-sub">' + cat.projectsText + '</p>';
+        html += '<div class="cat-dept-row"><span class="cat-dept-label">责任部门：</span><span class="cat-dept-val">' + cat.dept + '</span></div>';
+        html += '</div>';
+        return html;
+    }
+
+    function resolveInspectCategoryDept(applyId) {
+        var c = constructionData.find(function(d) { return d.id === applyId; });
+        if (!c || !c.tags || !c.tags.length) return { category: '—', department: '—' };
+        var depts = [];
+        c.tags.forEach(function(tag) {
+            var dept = categoryDeptMap[tag];
+            if (dept && depts.indexOf(dept) < 0) depts.push(dept);
+        });
+        return { category: c.tags.join('、'), department: depts.length ? depts.join('、') : '—' };
+    }
+
+    function buildRenovationCatsHtml(applyId, scene, showCategoryStatus) {
+        var c = constructionData.find(function(d) { return d.id === applyId; });
+        var html = '<div class="detail-section cats-section">' + secTitle('装修类目及项目');
+        if (!c || !c.tags || !c.tags.length) {
+            html += '<div class="cat-sub" style="color:var(--t3);padding:4px 0;">暂无类目信息</div></div>';
+            return html;
+        }
+        getConstructionCategoryItems(c, scene || 'inspect').forEach(function(cat) {
+            html += renderInspectCategoryCatItem(cat, showCategoryStatus);
+        });
+        html += '<div class="cat-remark-label">装修说明</div>';
+        html += '<div class="cat-remark-text">' + (c.decorateRemark || '按申报方案组织施工，现场须符合审批范围及安全措施要求') + '</div>';
+        html += '</div>';
+        return html;
+    }
+
+    var inspectData = {
+        today: [
+            { id: 'IN001', applyId: 'RX202605110001', title: 'B08 - 北京拿铁旧机动车', certNo: 'SZ202605110001', category: '基建改造', department: '物业部', tab: 'today' },
+            { id: 'IN002', applyId: 'RX202605010001', title: 'B10 - 瑞丰汽配', certNo: 'SZ202605010015', category: '门头广告、基建改造', department: '物业部', tab: 'today' },
+            { id: 'IN003', applyId: 'RX202605030001', title: 'D07 - 嘉诚名车', certNo: 'SZ202605060016', category: '消防系统、电气改造', department: '管理部', tab: 'today' }
+        ],
+        overdue: [
+            { id: 'IN006', applyId: 'RX202605120002', title: 'A08 - 红星车行', certNo: 'SZ202605100018', category: '门头广告', department: '物业部', tab: 'overdue', dueDate: '2026-05-19' },
+            { id: 'IN007', applyId: 'RX202605110001', title: 'B08 - 北京拿铁旧机动车', certNo: 'SZ202605110001', category: '基建改造', department: '物业部', tab: 'overdue', abnormalText: '临时用电线路裸露', inspectTime: '2026-05-19 09:20', rectifyType: '现场整改', isRecheck: true, firstInspectResult: '存在异常', firstInspectDescription: '现场发现临时用电线路裸露，已要求商户立即规范敷设。', firstInspectPerson: '赵经理', firstInspectPhotos: ['初检现场1.jpg', '初检现场2.jpg'] }
+        ],
+        recheck: [
+            { id: 'IN004', applyId: 'RX202605110001', title: 'B08 - 北京拿铁旧机动车', certNo: 'SZ202605110001', category: '基建改造', department: '物业部', tab: 'recheck', abnormalText: '临时用电线路裸露', inspectTime: '2026-05-19 09:20', rectifyType: '现场整改', isRecheck: true, firstInspectResult: '存在异常', firstInspectDescription: '现场发现临时用电线路裸露，已要求商户立即规范敷设。', firstInspectPerson: '赵经理', firstInspectPhotos: ['初检现场1.jpg', '初检现场2.jpg'] }
+        ],
+        abnormal: [],
+        done: [
+            { id: 'IN005', applyId: 'RX202605120002', title: 'A08 - 红星车行', certNo: 'SZ202605100018', category: '门头广告', department: '物业部', tab: 'done', result: '正常', inspectDescription: '现场施工秩序良好，门头改造符合申报方案，未发现违规作业。', inspectTime: '2026-05-20 08:30', person: '赵经理' },
+            { id: 'IN010', applyId: 'RX202605110001', title: 'B08 - 北京拿铁旧机动车', certNo: 'SZ202605110001', category: '基建改造', department: '物业部', tab: 'done', result: '复检正常', inspectDescription: '临时用电线路已规范穿管保护，现场复核无异常。', inspectTime: '2026-05-20 11:15', person: '赵经理' },
+            { id: 'IN008', applyId: 'RX202605010001', title: 'B10 - 瑞丰汽配', certNo: 'SZ202605010015', category: '门头广告、基建改造', department: '物业部', tab: 'done', result: '存在异常', abnormalText: '消防通道占用', inspectDescription: '现场发现施工材料及工具占用消防通道，已要求商户立即清理并设置警示标识。', rectifyType: '停工整改', inspectTime: '2026-05-20 10:00', person: '赵经理' }
+        ]
+    };
+
+    var rectifyData = {
+        pending: [
+            { id: 'ZG202605220001', applyId: 'RX202605110001', merchant: '北京拿铁旧机动车', shop: 'B08', type: '逾期停工', requirement: '施工证已逾期，请办理延期或申请验收后方可申请复工', deadline: '2026-05-25', issueTime: '2026-05-19 00:00', issuer: '系统（施工证逾期）', needStop: true, fromOverdue: true },
+            { id: 'ZG202605200001', applyId: 'RX202605010001', merchant: '瑞丰汽配', shop: 'B10', type: '巡检异常', requirement: '消防通道占用，请立即清理并设置警示标识', deadline: '2026-05-23', issueTime: '2026-05-20 10:00', issuer: '赵经理（市场经营部）', needStop: true, fromInspect: true, inspectId: 'IN008' },
+            { id: 'ZG202605210001', applyId: 'RX202605030001', merchant: '嘉诚名车', shop: 'D07', type: '巡检异常', requirement: '动火作业区域未配备灭火器，请立即补齐灭火器材', deadline: '2026-05-25', issueTime: '2026-05-21 09:00', issuer: '赵经理（市场经营部）', needStop: true, fromInspect: true, inspectId: 'IN009' }
+        ],
+        review: [
+            { id: 'ZG202605180001', applyId: 'RX202605110001', merchant: '北京拿铁旧机动车', shop: 'B08', type: '巡检异常', requirement: '临时用电线路裸露，请规范敷设并设置保护', deadline: '2026-05-19', issueTime: '2026-05-18 15:00', issuer: '赵经理（市场经营部）', needStop: false, fromInspect: true, merchantReply: '已规范线路并加装保护套管，附现场照片', replyTime: '2026-05-19 11:00', recheckApplyTime: '2026-05-19 11:00', attachmentDesc: '临时用电线路已规范穿管保护，配电箱周边杂物已清理，漏电保护器检测正常，详见附件说明。', attachments: ['用电整改说明.pdf', '电工自检记录.jpg'], rectificationPhotos: ['线路整改前.jpg', '线路整改后.jpg', '配电箱近景.jpg'] },
+            { id: 'ZG202605190001', applyId: 'RX202605010001', merchant: '瑞丰汽配', shop: 'B10', type: '巡检异常', requirement: '高空作业未系安全绳，请规范佩戴防护用品', deadline: '2026-05-22', issueTime: '2026-05-19 11:00', issuer: '赵经理（市场经营部）', needStop: true, fromInspect: true, recheckApplyTime: '2026-05-21 08:45', attachmentDesc: '高空作业人员均已规范佩戴安全绳及防护用品，现场监护人到岗。', attachments: ['高空作业整改说明.pdf'], rectificationPhotos: ['整改前.jpg', '整改后.jpg'] }
+        ],
+        closed: [
+            { id: 'ZG202605100001', applyId: 'RX202605120002', merchant: '红星车行', shop: 'A08', type: '巡检异常', requirement: '建筑垃圾未及时清运', deadline: '2026-05-12', issueTime: '2026-05-10 09:00', issuer: '赵经理（市场经营部）', needStop: false, fromInspect: true, recheckApplyTime: '2026-05-11 10:30', attachmentDesc: '建筑垃圾已全部清运完毕，现场已恢复整洁，清运前后对比见上传照片及附件说明。', attachments: ['垃圾清运记录.pdf'], rectificationPhotos: ['清运前.jpg', '清运后.jpg', '现场全景.jpg'], closeTime: '2026-05-11 16:00', reviewer: '赵经理', reviewResult: 'pass', reviewOpinion: '现场核实建筑垃圾已清运完毕，现场恢复整洁，符合整改要求。', reviewPhotos: ['复核现场1.jpg', '复核现场2.jpg'] },
+            { id: 'ZG202605090001', applyId: 'RX202605110001', merchant: '北京拿铁旧机动车', shop: 'B08', type: '巡检异常', requirement: '施工材料堆放占用消防通道', deadline: '2026-05-10', issueTime: '2026-05-08 14:00', issuer: '赵经理（市场经营部）', needStop: true, fromInspect: true, recheckApplyTime: '2026-05-09 16:00', attachmentDesc: '材料已清空并移位存放，消防通道恢复畅通。', attachments: ['通道整改说明.pdf'], rectificationPhotos: ['通道整改前.jpg', '通道整改后.jpg'], closeTime: '2026-05-10 10:30', reviewer: '赵经理', reviewResult: 'pass', reviewOpinion: '消防通道已恢复畅通，材料堆放符合规范。', reviewPhotos: ['复核现场1.jpg'] }
+        ],
+        rejected: [
+            { id: 'ZG202605150001', applyId: 'RX202605030001', merchant: '嘉诚名车', shop: 'D07', type: '巡检异常', requirement: '施工区域未设置围挡，存在安全隐患', deadline: '2026-05-18', issueTime: '2026-05-15 10:00', issuer: '赵经理（市场经营部）', needStop: true, fromInspect: true, recheckApplyTime: '2026-05-17 14:20', attachmentDesc: '已设置施工围挡，现场警示标识已补齐，详见上传照片。', attachments: ['围挡整改说明.pdf'], rectificationPhotos: ['围挡整改前.jpg', '围挡整改后.jpg'], rejectTime: '2026-05-17 16:30', reviewer: '赵经理', reviewResult: 'reject', reviewOpinion: '现场围挡高度不足，警示标识摆放位置不符合要求，请按规范重新整改后再次申请复检。', reviewPhotos: ['复核现场1.jpg'] },
+            { id: 'ZG202605140001', applyId: 'RX202605120002', merchant: '红星车行', shop: 'A08', type: '巡检异常', requirement: '门头施工未办理动火审批手续', deadline: '2026-05-16', issueTime: '2026-05-13 09:30', issuer: '赵经理（市场经营部）', needStop: false, fromInspect: true, recheckApplyTime: '2026-05-15 11:00', attachmentDesc: '已补办动火审批手续，附审批单及现场照片。', attachments: ['动火审批单.pdf'], rectificationPhotos: ['审批单.jpg', '现场照片.jpg'], rejectTime: '2026-05-15 15:20', reviewer: '赵经理', reviewResult: 'reject', reviewOpinion: '动火审批手续时间覆盖范围不足，请补充有效期内的完整审批材料。', reviewPhotos: ['复核现场1.jpg', '复核现场2.jpg'] }
+        ]
+    };
+
+    var merchantDailyReports = [
+        { id: 'MR001', applyId: 'RX202605110001', merchant: '北京拿铁旧机动车', shop: 'B08', certNo: 'SZ202605110001', reportDate: '2026-05-20', status: 'reported', reportTime: '2026-05-20 07:45', works: [
+            { key: 'fire', reported: true, reportTime: '2026-05-20 07:30', content: '动火点周围10米可燃物已清理，配备灭火器2具，监护人李师傅在场，动火时段 09:00~12:00', certs: ['动火作业证_王焊工.pdf', '动火点现场.jpg'] },
+            { key: 'electric', reported: true, reportTime: '2026-05-20 07:45', content: '临时用电线路已穿管保护，漏电保护器检测正常，总负荷约8kW，用电点位2处', certs: ['电工操作证_张电工.pdf', '配电箱近景.jpg'] }
+        ]},
+        { id: 'MR002', applyId: 'RX202605110001', merchant: '北京拿铁旧机动车', shop: 'B08', certNo: 'SZ202605110001', reportDate: '2026-05-19', status: 'reported', reportTime: '2026-05-19 08:10', works: [
+            { key: 'fire', reported: true, reportTime: '2026-05-19 08:00', content: '动火作业已报备，现场监护人到岗', certs: ['动火作业证_王焊工.pdf'] },
+            { key: 'electric', reported: true, reportTime: '2026-05-19 08:10', content: '临时用电验收合格，线路架空敷设', certs: ['电工操作证_张电工.pdf'] }
+        ]},
+        { id: 'MR003', applyId: 'RX202605010001', merchant: '瑞丰汽配', shop: 'B10', certNo: 'SZ202605010015', reportDate: '2026-05-20', status: 'overdue', reportTime: '', works: [
+            { key: 'fire', reported: true, reportTime: '2026-05-20 08:00', content: '焊接作业区域已设警戒带，灭火器已就位，动火监护人张工已到岗', certs: ['动火作业证_李焊工.pdf'] },
+            { key: 'height', reported: false, reportTime: '', content: '', certs: [] }
+        ], overdueWorks: ['高空作业'] },
+        { id: 'MR004', applyId: 'RX202605010001', merchant: '瑞丰汽配', shop: 'B10', certNo: 'SZ202605010015', reportDate: '2026-05-19', status: 'overdue', reportTime: '', works: [
+            { key: 'fire', reported: true, reportTime: '2026-05-19 07:50', content: '动火点已清理，监护人到岗', certs: ['动火作业证_李焊工.pdf'] },
+            { key: 'height', reported: false, reportTime: '', content: '', certs: [] }
+        ], overdueWorks: ['高空作业'] },
+        { id: 'MR005', applyId: 'RX202605030001', merchant: '嘉诚名车', shop: 'D07', certNo: 'SZ202605060016', reportDate: '2026-05-20', status: 'reported', reportTime: '2026-05-20 08:15', works: [
+            { key: 'electric', reported: true, reportTime: '2026-05-20 08:15', content: '施工区临时用电已验收，线路架空敷设，配电箱上锁管理', certs: ['电工操作证_孙电工.pdf'] }
+        ]},
+        { id: 'MR006', applyId: 'RX202605120002', merchant: '红星车行', shop: 'A08', certNo: 'SZ202605100018', reportDate: '2026-05-20', status: 'overdue', reportTime: '', works: [
+            { key: 'height', reported: false, reportTime: '', content: '', certs: [] }
+        ], overdueWorks: ['高空作业'] },
+        { id: 'MR007', applyId: 'RX202605120002', merchant: '红星车行', shop: 'A08', certNo: 'SZ202605100018', reportDate: '2026-05-19', status: 'overdue', reportTime: '', works: [
+            { key: 'height', reported: false, reportTime: '', content: '', certs: [] }
+        ], overdueWorks: ['高空作业'] }
+    ];
+
+    function enrichDailyReport(record) {
+        var works = (record.works || []).map(function(w) {
+            var meta = specialWorkMeta[w.key] || {};
+            return {
+                key: w.key,
+                label: meta.label || w.key,
+                tagCls: meta.cls || '',
+                reported: !!w.reported,
+                reportTime: w.reportTime || '',
+                content: w.content || '',
+                certs: w.certs || []
+            };
+        });
+        var overdueLabels = (record.overdueWorks && record.overdueWorks.length)
+            ? record.overdueWorks
+            : works.filter(function(w) { return !w.reported; }).map(function(w) { return w.label; });
+        return Object.assign({}, record, {
+            title: record.shop + ' - ' + record.merchant,
+            works: works,
+            overdueLabels: overdueLabels,
+            statusText: record.status === 'reported' ? '已报备' : '过期未报备'
+        });
+    }
+
+    function filterDailyReportList(tab, applyId) {
+        var list = merchantDailyReports.map(enrichDailyReport);
+        if (applyId) list = list.filter(function(d) { return d.applyId === applyId; });
+        if (tab === 'reported') list = list.filter(function(d) { return d.status === 'reported'; });
+        if (tab === 'overdue') list = list.filter(function(d) { return d.status === 'overdue'; });
+        return list.sort(function(a, b) { return (b.reportDate + b.reportTime).localeCompare(a.reportDate + a.reportTime); });
+    }
+
+    function getDailyReportStats(applyId) {
+        var list = merchantDailyReports;
+        if (applyId) list = list.filter(function(d) { return d.applyId === applyId; });
+        var reported = list.filter(function(d) { return d.status === 'reported'; }).length;
+        var overdue = list.filter(function(d) { return d.status === 'overdue'; }).length;
+        return { reported: reported, overdue: overdue, total: list.length };
+    }
+
+    window.buildSpecialWorkTagsHtml = function(applyId) {
+        var works = specialWorkTodayByApply[applyId] || [];
+        if (!works.length) return '';
+        var html = '<div class="task-tags special-work-tags">';
+        specialWorkOrder.forEach(function(key) {
+            if (works.indexOf(key) < 0) return;
+            var meta = specialWorkMeta[key];
+            html += '<span class="task-tag ' + meta.cls + '">' + meta.label + '</span>';
+        });
+        html += '</div>';
+        return html;
+    };
+
+    window.buildMerchantSelfCheckHtml = function(applyId) {
+        var works = specialWorkTodayByApply[applyId] || [];
+        if (!works.length) return '';
+        var selfCheck = merchantSelfCheckByApply[applyId] || {};
+        var html = '<div class="detail-section cats-section">' + secTitle('今日商户报备');
+        html += '<p class="section-tip">以下为商户当日有效特殊作业的报备情况，巡检时请现场核对。</p>';
+        var list = specialWorkOrder.filter(function(key) { return works.indexOf(key) >= 0; });
+        list.forEach(function(key, idx) {
+            var meta = specialWorkMeta[key];
+            var info = selfCheck[key] || { reported: false };
+            html += '<div class="cat-item"' + (idx === list.length - 1 ? ' style="border-bottom:none;padding-bottom:0;"' : '') + '>';
+            html += '<div class="cat-hd"><span class="cat-name">' + meta.label + '</span>';
+            html += '<span class="stag ' + (info.reported ? 'stag-green' : 'stag-warn') + '">' + (info.reported ? '已报备' : '未报备') + '</span></div>';
+            if (info.reported) {
+                html += '<p class="cat-sub">' + (info.content || '—') + '</p>';
+                html += '<p class="report-time-row">报备时间：' + (info.reportTime || '—') + '</p>';
+                if (info.certs && info.certs.length) {
+                    html += '<div class="cert-file-list">';
+                    info.certs.forEach(function(name) {
+                        html += buildFileItemHtml(name);
+                    });
+                    html += '</div>';
+                }
+            } else {
+                html += '<p class="cat-sub" style="color:var(--color-warning);margin-bottom:0;">商户尚未提交当日报备，请督促现场补报后再作业。</p>';
+            }
+            html += '</div>';
+        });
+        html += '</div>';
+        return html;
+    };
+
+    function updateConstructionTabBadges() {
+        var allCount = constructionData.length;
+        var expiringCount = constructionData.filter(function(d) { return !d.stopped && d.tab === 'expiring'; }).length;
+        var stoppedCount = constructionData.filter(function(d) { return d.stopped; }).length;
+        var elAll = document.getElementById('constructionBadgeAll');
+        var elExp = document.getElementById('constructionBadgeExpiring');
+        var elStop = document.getElementById('constructionBadgeStopped');
+        if (elAll) elAll.textContent = allCount;
+        if (elExp) elExp.textContent = expiringCount;
+        if (elStop) elStop.textContent = stoppedCount;
+    }
+
+    window.updateHomeStats = function() {
+        syncOverdueConstructionStop();
+        var activeCount = constructionData.filter(function(d) { return !d.stopped && d.tab === 'active'; }).length;
+        var stoppedCount = constructionData.filter(function(d) { return d.stopped; }).length;
+        var expiringCount = constructionData.filter(function(d) { return !d.stopped && d.tab === 'expiring'; }).length;
+        var statNums = document.querySelectorAll('#page-home .stat-num');
+        if (statNums.length >= 4) {
+            statNums[0].textContent = activeCount;
+            statNums[1].textContent = inspectData.today.length;
+            statNums[2].textContent = inspectData.recheck.length;
+            statNums[3].textContent = stoppedCount;
+        }
+        function setModuleBadge(id, count) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            if (count > 0) {
+                el.textContent = count > 99 ? '99+' : count;
+                el.style.display = 'inline-block';
+            } else {
+                el.style.display = 'none';
+            }
+        }
+        var rectifyPendingCount = filterStopRectifyList(rectifyData.pending).length + filterStopRectifyList(rectifyData.review).length;
+        setModuleBadge('moduleBadgeInspect', inspectData.today.length + inspectData.recheck.length + inspectData.overdue.length);
+        setModuleBadge('moduleBadgeRectify', rectifyPendingCount);
+        setModuleBadge('moduleBadgeReport', getDailyReportStats().overdue);
+        updateConstructionTabBadges();
+        var descConstruction = document.getElementById('homeDescConstruction');
+        if (descConstruction) descConstruction.textContent = '共 ' + constructionData.length + ' 个商户在施工期内';
+        var descInspect = document.getElementById('homeDescInspect');
+        if (descInspect) descInspect.textContent = '今日待检 ' + inspectData.today.length + ' 个 · 待复检 ' + inspectData.recheck.length + ' 个';
+        var descRectify = document.getElementById('homeDescRectify');
+        if (descRectify) descRectify.textContent = '待处理 ' + rectifyPendingCount + ' 个';
+        var descReport = document.getElementById('homeDescReport');
+        if (descReport) descReport.textContent = '过期未报备 ' + getDailyReportStats().overdue + ' 个';
+        var br = document.getElementById('dailyReportBadgeReported');
+        var bo = document.getElementById('dailyReportBadgeOverdue');
+        if (br) br.textContent = getDailyReportStats(currentDailyReportApplyId).reported;
+        if (bo) bo.textContent = getDailyReportStats(currentDailyReportApplyId).overdue;
+    };
+
+    function getRectifyRecheckApply(item) {
+        if (!item || !item.id) return null;
+        var photos = item.rectificationPhotos || [];
+        var attachments = item.attachments || [];
+        var attachmentDesc = item.attachmentDesc || item.merchantReply || '';
+        var applyTime = item.recheckApplyTime || item.replyTime || '';
+        if (!applyTime && !attachmentDesc && !photos.length && !attachments.length) return null;
+        return {
+            applyTime: applyTime || '—',
+            attachmentDesc: attachmentDesc || '—',
+            attachments: attachments,
+            rectificationPhotos: photos
+        };
+    }
+
+    function buildRectifyRecheckApplyHtml(item, emptyText) {
+        var apply = getRectifyRecheckApply(item);
+        var html = '<div class="detail-card">' + secTitle('申请复检');
+        if (!apply) {
+            html += '<div class="recheck-empty">' + (emptyText || '商户尚未提交申请复检内容') + '</div></div>';
+            return html;
+        }
+        html += '<div class="field-row"><span class="f-label">提交时间</span><span class="f-value">' + apply.applyTime + '</span></div>';
+        html += '<div class="att-block"><div class="att-sub-label">附件说明</div>';
+        html += '<div class="remark-text">' + apply.attachmentDesc + '</div></div>';
+        if (apply.attachments.length) {
+            html += '<div class="att-block"><div class="att-cat-label">附件</div><div class="file-list">';
+            apply.attachments.forEach(function(f) { html += buildFileItemHtml(f); });
+            html += '</div></div>';
+        }
+        if (apply.rectificationPhotos.length) {
+            html += '<div class="att-block"><div class="att-cat-label">整改照片</div><div class="photo-thumb-grid">';
+            apply.rectificationPhotos.forEach(function(p) {
+                html += '<div class="photo-thumb-item" onclick="alert(\'照片预览：' + p + '（原型占位）\')" title="' + p + '">' + p + '</div>';
+            });
+            html += '</div></div>';
+        }
+        html += '</div>';
+        return html;
+    }
+
+    function getRectifyReviewInfo(item) {
+        if (!item || !item.id) return null;
+        var reviewTime = item.closeTime || item.rejectTime || '';
+        if (!reviewTime && !item.reviewResult) return null;
+        var photos = item.reviewPhotos || [];
+        var pass = item.reviewResult !== 'reject';
+        return {
+            result: pass ? '复核通过' : '复核不通过',
+            resultPass: pass,
+            reviewTime: reviewTime || '—',
+            reviewer: item.reviewer || '—',
+            opinion: item.reviewOpinion || '',
+            photos: photos
+        };
+    }
+
+    function buildRectifyReviewInfoHtml(item) {
+        var info = getRectifyReviewInfo(item);
+        var html = '<div class="detail-card">' + secTitle('复检信息');
+        if (!info) {
+            html += '<div class="recheck-empty">暂无复检信息</div></div>';
+            return html;
+        }
+        html += '<div class="field-row"><span class="f-label">复核结果</span><span class="f-value" style="color:' + (info.resultPass ? 'var(--primary)' : 'var(--danger)') + ';">' + info.result + '</span></div>';
+        html += '<div class="field-row"><span class="f-label">复核时间</span><span class="f-value">' + info.reviewTime + '</span></div>';
+        html += '<div class="field-row"><span class="f-label">复核人</span><span class="f-value">' + info.reviewer + '</span></div>';
+        if (info.opinion) {
+            html += '<div class="att-block"><div class="att-sub-label">复核意见</div>';
+            html += '<div class="remark-text">' + info.opinion + '</div></div>';
+        }
+        if (info.photos.length) {
+            html += '<div class="att-block"><div class="att-cat-label">拍摄照片</div><div class="photo-thumb-grid">';
+            info.photos.forEach(function(p) {
+                html += '<div class="photo-thumb-item" onclick="alert(\'照片预览：' + p + '（原型占位）\')" title="' + p + '">' + p + '</div>';
+            });
+            html += '</div></div>';
+        }
+        html += '</div>';
+        return html;
+    }
+
+    window.createRectifyFromInspect = function(sourceItem, abnormalText, needStop) {
+        var c = constructionData.find(function(d) { return d.id === sourceItem.applyId; });
+        rectifyData.pending.unshift({
+            id: 'ZG' + Date.now(),
+            applyId: sourceItem.applyId,
+            merchant: c ? c.merchant : '',
+            shop: c ? c.shop : '',
+            type: '巡检异常',
+            requirement: abnormalText,
+            deadline: '2026-05-25',
+            issueTime: '2026-05-20 14:30',
+            issuer: '赵经理（市场经营部）',
+            needStop: needStop,
+            fromInspect: true,
+            inspectId: sourceItem.id
+        });
+        updateHomeStats();
+    };
+
+    function syncOverdueConstructionStop() {
+        constructionData.forEach(function(item) {
+            if (item.daysLeft >= 0 || item.stopped) return;
+            item.stopped = true;
+            item.stopReason = '逾期停工';
+            item.stopTime = item.stopTime || '2026-05-19 00:00';
+            var hasRectify = rectifyData.pending.concat(rectifyData.review).some(function(r) {
+                return r.applyId === item.id && r.fromOverdue;
+            });
+            if (!hasRectify) {
+                rectifyData.pending.unshift({
+                    id: 'ZG' + Date.now() + item.id.slice(-4),
+                    applyId: item.id,
+                    merchant: item.merchant,
+                    shop: item.shop,
+                    type: '逾期停工',
+                    requirement: '施工证已逾期，请办理延期或申请验收后方可申请复工',
+                    deadline: '2026-05-25',
+                    issueTime: item.stopTime,
+                    issuer: '系统（施工证逾期）',
+                    needStop: true,
+                    fromOverdue: true
+                });
+            }
+        });
+    }
+    syncOverdueConstructionStop();
+
+    window.markMerchantStopped = function(applyId, reason) {
+        var target = constructionData.find(function(d) { return d.id === applyId; });
+        if (target) {
+            target.stopped = true;
+            target.stopReason = reason || '巡检异常-停工整改';
+            target.stopTime = '2026-05-20 14:30';
+        }
+        updateHomeStats();
+    };
+
+    window.showPage = function(pageId) {
+        document.querySelectorAll('.page-container').forEach(function(p) { p.classList.remove('active'); });
+        var el = document.getElementById('page-' + pageId);
+        if (el) el.classList.add('active');
+    };
+
+    window.openConstructionList = function(tab) {
+        if (tab) {
+            currentConstructionTab = tab;
+            document.querySelectorAll('#constructionTabs .tab').forEach(function(t) {
+                t.classList.toggle('active', t.getAttribute('data-tab') === tab);
+            });
+        }
+        showPage('construction-list');
+        renderConstructionList();
+        scrollConstructionTabIntoView(currentConstructionTab);
+    };
+
+    window.switchConstructionTab = function(tab) {
+        currentConstructionTab = tab;
+        document.querySelectorAll('#constructionTabs .tab').forEach(function(t) {
+            t.classList.toggle('active', t.getAttribute('data-tab') === tab);
+        });
+        scrollConstructionTabIntoView(tab);
+        renderConstructionList();
+    };
+
+    function scrollConstructionTabIntoView(tab) {
+        var bar = document.getElementById('constructionTabs');
+        if (!bar) return;
+        var active = bar.querySelector('.tab.active');
+        if (!active) return;
+        var bl = bar.getBoundingClientRect().left;
+        var al = active.getBoundingClientRect().left;
+        var aw = active.offsetWidth;
+        bar.scrollLeft += al - bl - bar.offsetWidth / 2 + aw / 2;
+    }
+
+    window.openConstructionFilter = function(key) {
+        if (constructionActiveFilter === key && document.getElementById('constructionFilterMask').classList.contains('active')) {
+            closeConstructionFilter();
+            return;
+        }
+        constructionActiveFilter = key;
+        var bar = document.getElementById('constructionFilterBar');
+        var rect = bar.getBoundingClientRect();
+        document.getElementById('constructionFilterSpacer').style.height = rect.bottom + 'px';
+        var def = constructionFilterDefs.filter(function(f) { return f.key === key; })[0];
+        var input = document.getElementById('constructionFilterInput');
+        input.placeholder = def.placeholder;
+        input.value = constructionFilterValues[key] || '';
+        document.getElementById('constructionFilterMask').classList.add('active');
+        updateConstructionFilterBarUI();
+    };
+    window.closeConstructionFilter = function() {
+        constructionActiveFilter = null;
+        document.getElementById('constructionFilterMask').classList.remove('active');
+        updateConstructionFilterBarUI();
+    };
+    window.doConstructionFilter = function() {
+        if (constructionActiveFilter) {
+            constructionFilterValues[constructionActiveFilter] = (document.getElementById('constructionFilterInput').value || '').trim();
+        }
+        renderConstructionList();
+        closeConstructionFilter();
+    };
+    function updateConstructionFilterBarUI() {
+        document.querySelectorAll('#constructionFilterBar .fb-item').forEach(function(el) {
+            var key = el.getAttribute('data-key');
+            el.classList.toggle('fb-active', !!constructionFilterValues[key]);
+            var arrow = el.querySelector('.fb-arrow');
+            if (arrow) arrow.classList.toggle('fb-arrow-open', constructionActiveFilter === key);
+        });
+    }
+
+    window.renderConstructionList = function() {
+        var shop = constructionFilterValues.shop;
+        var merchant = constructionFilterValues.merchant;
+        var cert = constructionFilterValues.cert;
+        var list = constructionData.filter(function(item) {
+            if (currentConstructionTab === 'stopped') {
+                if (!item.stopped) return false;
+            } else if (currentConstructionTab === 'all') {
+                // show all
+            } else {
+                if (item.tab !== currentConstructionTab) return false;
+                if (item.stopped) return false;
+            }
+            if (shop && item.shop.indexOf(shop) < 0) return false;
+            if (merchant && item.merchant.indexOf(merchant) < 0) return false;
+            if (cert && item.certNo.indexOf(cert) < 0) return false;
+            return true;
+        });
+        var el = document.getElementById('constructionTaskList');
+        if (!list.length) {
+            el.innerHTML = '<div class="empty-state">暂无数据</div>';
+            return;
+        }
+        var html = '';
+        if (list.length) html += '<div class="count-tip">共找到' + list.length + '个</div>';
+        list.forEach(function(item) {
+            var statusText = item.tab === 'expiring' ? '即将到期' : '施工中';
+            var statusClass = item.tab === 'expiring' ? 'stag-warn' : 'stag-blue';
+            if (item.stopped) { statusText = '停工整改'; statusClass = 'stag-red'; }
+            var showTag = currentConstructionTab === 'all';
+            html += '<div class="task-card" onclick="showConstructionDetail(\'' + item.id + '\')">';
+            html += '<div class="card-title-row"><span class="card-green-title">' + item.shop + ' · ' + item.merchant + '</span>';
+            if (showTag) html += '<span class="stag ' + statusClass + '">' + statusText + '</span>';
+            html += '</div>';
+            html += '<p class="card-shop-no">' + item.tags.join(' / ') + '</p>';
+            html += '<div class="info-line">施工证号：' + item.certNo + '</div>';
+            html += '<div class="info-line">施工期间：' + item.period + '</div>';
+            if (item.stopped) html += '<div class="info-line">停工原因：<span style="color:var(--danger);">' + (item.stopReason || '—') + '</span></div>';
+            html += '<div class="info-line">剩余天数：<span style="color:' + (item.daysLeft < 0 ? 'var(--danger)' : 'inherit') + ';">' + (item.daysLeft < 0 ? ('已逾期 ' + Math.abs(item.daysLeft) + ' 天') : (item.daysLeft + ' 天')) + '</span></div>';
+            html += '<div class="card-action task-card-action">'
+                + mkCardBtn('查看详情', 'event.stopPropagation();showConstructionDetail(\'' + item.id + '\')', 'outline')
+                + mkCardBtn('发起巡检', 'event.stopPropagation();startInspectFromConstruction(\'' + item.id + '\')', 'fill')
+                + '</div>';
+            html += '</div>';
+        });
+        el.innerHTML = html;
+    };
+
+    window.showConstructionDetail = function(id) {
+        currentConstructionId = id;
+        var item = constructionData.find(function(d) { return d.id === id; }) || constructionData[0];
+        var banner = '';
+        if (item.tab === 'expiring') {
+            banner = buildStatusBanner('orange', '即将到期（剩余' + item.daysLeft + '天）', '请提醒商户关注施工证有效期，如需延期请引导提交装修延期申请。');
+        } else if (item.stopped) {
+            banner = buildStatusBanner('red', '停工整改', (item.stopReason || '巡检异常-停工整改') + '。停工整改复核通过后将自动恢复施工。');
+        } else {
+            banner = buildStatusBanner('blue', '施工中', '施工证有效期内，请按计划开展日常巡检。');
+        }
+        var html = banner;
+        html += '<div class="detail-card">' + secTitle('基本信息');
+        html += '<div class="detail-row"><span class="detail-label">申请编号</span><span class="detail-value">' + item.id + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">商户名称</span><span class="detail-value">' + item.merchant + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">商铺号</span><span class="detail-value">' + item.shop + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">联系人</span><span class="detail-value">' + item.contact + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">计划装修周期</span><span class="detail-value">' + item.planPeriod + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">施工期间</span><span class="detail-value">' + item.period + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">施工证号</span><span class="detail-value"><span class="cert-link-text" onclick="openCertModal(\'' + item.id + '\')">' + item.certNo + '</span></span></div></div>';
+
+        html += buildRenovationCatsHtml(item.id, 'construction');
+
+        html += '<div class="detail-card">' + secTitle('施工期关联业务');
+        html += '<div class="link-row" onclick="alert(\'原型：跳转《装修延期申请》模块（既有原型）\')"><span>装修延期申请</span><span class="arrow">查看 ›</span></div>';
+        html += '<div class="link-row" onclick="alert(\'原型：跳转《装修增项申请》模块\')"><span>装修增项申请</span><span class="arrow">查看 ›</span></div>';
+        html += '<div class="link-row" onclick="alert(\'原型：跳转《特殊作业申请》模块\')"><span>特殊作业申请</span><span class="arrow">1 条进行中 ›</span></div>';
+        html += '<div class="link-row" onclick="alert(\'原型：跳转《验收审核》模块\')"><span>验收审核</span><span class="arrow">未提交 ›</span></div>';
+        var drs = getDailyReportStats(item.id);
+        html += '<div class="link-row" onclick="openDailyReportList(\'' + item.id + '\')"><span>商户每日报备</span><span class="arrow">' + (drs.total ? ('已报备 ' + drs.reported + ' · 过期 ' + drs.overdue) : '暂无记录') + ' ›</span></div></div>';
+
+        var tlItems = [
+            { dept: '系统生成施工证', meta: '2026-05-01 08:30 · 进入施工期', dot: 'dot-pass' },
+            { dept: '日常巡检', meta: '2026-05-19 正常 · 赵经理', dot: 'dot-pass' }
+        ];
+        if (item.stopped) tlItems.push({ dept: '停工整改', meta: (item.stopTime || '—') + ' · ' + (item.stopReason || '—'), dot: 'dot-reject' });
+        tlItems.push({ dept: '商户申请验收', meta: '未提交 · 跳转既有验收模块', dot: 'dot-waiting' });
+        html += '<div class="detail-card">' + secTitle('施工期流程记录') + '<div class="timeline">';
+        tlItems.forEach(function(t, idx) {
+            html += '<div class="tl-item"><div class="tl-axis"><div class="tl-dot ' + t.dot + '"></div>'
+                + (idx < tlItems.length - 1 ? '<div class="tl-line"></div>' : '') + '</div>'
+                + '<div class="tl-content"><div class="tl-dept">' + t.dept + '</div><div class="tl-meta">' + t.meta + '</div></div></div>';
+        });
+        html += '</div></div>';
+
+        html += '<div class="detail-card">' + secTitle('近期巡检 / 整改');
+        html += '<div class="detail-row"><span class="detail-label">最近巡检</span><span class="detail-value">2026-05-19 正常</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">待整改单</span><span class="detail-value" style="color:var(--warn);">' + rectifyData.pending.filter(function(r) { return r.applyId === item.id; }).length + ' 条</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">累计巡检</span><span class="detail-value">12 次</span></div></div>';
+        html += '<div style="height:10px;"></div>';
+
+        document.getElementById('constructionDetailContent').innerHTML = html;
+        var btns = '<button class="btn btn-primary btn-fill" onclick="startInspectFromConstruction(\'' + item.id + '\')">发起巡检</button>';
+        document.getElementById('constructionDetailBtns').innerHTML = btns;
+        showPage('construction-detail');
+    };
+
+    window.openCertModal = function(applyId) {
+        var item = constructionData.find(function(d) { return d.id === applyId; }) || constructionData[0];
+        document.getElementById('certModalBody').innerHTML =
+            '<div class="cert-preview"><h3>装修施工证</h3><p>RENOVATION CONSTRUCTION PERMIT</p>'
+            + '<div class="cert-row"><span>装修商户</span><span>' + item.merchant + '</span></div>'
+            + '<div class="cert-row"><span>商铺号</span><span>' + item.shop + '</span></div>'
+            + '<div class="cert-row"><span>装修内容</span><span>' + item.tags.join('·') + '</span></div>'
+            + '<div class="cert-row"><span>有效期</span><span>' + item.period.replace(' 至 ', ' ~ ') + '</span></div>'
+            + '<div class="cert-row"><span>施工证编号</span><span style="font-family:monospace;">' + item.certNo + '</span></div>'
+            + '<p style="text-align:center;font-size:11px;color:#999;margin-top:12px;">微信扫码查看装修申请信息</p></div>';
+        document.getElementById('certModal').classList.add('active');
+    };
+    window.closeCertModal = function() { document.getElementById('certModal').classList.remove('active'); };
+
+    window.openInspectList = function(tab) {
+        if (tab) {
+            currentInspectTab = tab;
+            document.querySelectorAll('#inspectTabs .tab').forEach(function(t) {
+                t.classList.toggle('active', t.getAttribute('data-tab') === tab);
+            });
+        }
+        showPage('inspect-list');
+        renderInspectList();
+    };
+    window.switchInspectTab = function(tab) {
+        currentInspectTab = tab;
+        document.querySelectorAll('#inspectTabs .tab').forEach(function(t) {
+            t.classList.toggle('active', t.getAttribute('data-tab') === tab);
+        });
+        renderInspectList();
+    };
+    window.renderInspectList = function() {
+        var list = inspectData[currentInspectTab] || [];
+        var el = document.getElementById('inspectTaskList');
+        if (!list.length) {
+            el.innerHTML = '<div class="empty-state">暂无任务</div>';
+            return;
+        }
+        var html = '';
+        if (list.length) html += '<div class="count-tip">共找到' + list.length + '个</div>';
+        list.forEach(function(item) {
+            var stText = currentInspectTab === 'today' ? '今日待检'
+                : (currentInspectTab === 'recheck' ? '今日待复检'
+                : (currentInspectTab === 'overdue' ? (item.isRecheck ? '复检未检' : '初检未检')
+                : (item.rectifyType === '停工整改' ? '停工整改'
+                : ((item.result || '').indexOf('异常') >= 0 ? item.result
+                : (item.result === '复检正常' ? '复检正常' : '已巡检')))));
+            var stClass = currentInspectTab === 'today' ? 'stag-warn'
+                : (currentInspectTab === 'recheck' ? 'stag-red'
+                : (currentInspectTab === 'overdue' ? (item.isRecheck ? 'stag-red' : 'stag-warn')
+                : (item.rectifyType === '停工整改' || (item.result || '').indexOf('异常') >= 0 ? 'stag-red' : 'stag-green')));
+            var isOverdueTab = currentInspectTab === 'overdue';
+            html += '<div class="task-card' + (isOverdueTab ? ' readonly' : '') + '"' + (isOverdueTab ? '' : ' onclick="onInspectCardClick(\'' + item.id + '\',\'' + currentInspectTab + '\')"') + '>';
+            html += '<div class="card-title-row"><span class="card-green-title">' + item.title + '</span>';
+            html += '<span class="stag ' + stClass + '">' + stText + '</span></div>';
+            var catDept = resolveInspectCategoryDept(item.applyId);
+            html += '<p class="card-shop-no">' + (item.category || catDept.category) + '</p>';
+            html += '<div class="info-line">施工证号：' + item.certNo + '</div>';
+            html += '<div class="info-line">负责部门：' + (item.department || catDept.department) + '</div>';
+            if (item.dueDate) html += '<div class="info-line">应检日期：' + item.dueDate + '</div>';
+            if (item.abnormalText) html += '<div class="info-line">异常说明：<span style="color:var(--danger);">' + item.abnormalText + '</span></div>';
+            if (item.rectifyType) html += '<div class="info-line">整改类型：' + item.rectifyType + '</div>';
+            if (item.inspectTime) html += '<div class="info-line">巡检时间：' + item.inspectTime + '</div>';
+            if (item.inspectDescription) html += '<div class="info-line">巡检描述：' + item.inspectDescription + '</div>';
+            html += buildSpecialWorkTagsHtml(item.applyId);
+            if (currentInspectTab === 'today') {
+                html += '<div class="card-action task-card-action">' + mkCardBtn('开始巡检', 'event.stopPropagation();openInspectForm(\'' + item.id + '\')', 'fill') + '</div>';
+            } else if (currentInspectTab === 'recheck') {
+                html += '<div class="card-action task-card-action">' + mkCardBtn('开始复检', 'event.stopPropagation();openInspectForm(\'' + item.id + '\',true)', 'fill') + '</div>';
+            }
+            html += '</div>';
+        });
+        el.innerHTML = html;
+    };
+
+    window.onInspectCardClick = function(id, tab) {
+        if (tab === 'done') showInspectDetail(id);
+        else if (tab === 'recheck') openInspectForm(id, true);
+        else if (tab !== 'overdue') openInspectForm(id);
+    };
+
+    window.getInspectSourceKey = function(item) {
+        if (!item) return 'today';
+        if (item.isRecheck) return 'recheck';
+        if (item.tab === 'overdue') return 'overdue';
+        if ((inspectData.overdue || []).some(function(d) { return d.id === item.id; })) return 'overdue';
+        if ((inspectData.today || []).some(function(d) { return d.id === item.id; })) return 'today';
+        return 'today';
+    };
+
+    window.findInspectItem = function(inspectId) {
+        var item = null;
+        ['today', 'overdue', 'recheck', 'abnormal', 'done'].forEach(function(k) {
+            (inspectData[k] || []).forEach(function(d) { if (d.id === inspectId) item = d; });
+        });
+        return item;
+    };
+
+    window.openInspectForm = function(inspectId, isRecheck, backTarget) {
+        inspectFormBackTarget = backTarget || 'inspect-list';
+        inspectFormPhotos = [];
+        currentInspectId = inspectId;
+        inspectRectifyType = 'onsite';
+        var item = findInspectItem(inspectId);
+        if (!item) item = inspectData.today[0];
+        var navTitle = isRecheck || item.isRecheck ? '开始复检' : '开始巡检';
+        document.querySelector('#page-inspect-form .nb-title, #page-inspect-form .nav-title').textContent = navTitle;
+        var html = '';
+        html += '<div class="detail-section cats-section">' + secTitle('巡检对象');
+        html += '<div class="detail-row"><span class="detail-label">商户</span><span class="detail-value">' + item.title + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">施工证号</span><span class="detail-value">' + item.certNo + '</span></div>';
+        if (item.dueDate) html += '<div class="detail-row"><span class="detail-label">应检日期</span><span class="detail-value">' + item.dueDate + '</span></div>';
+        html += '</div>';
+        if (isRecheck || item.isRecheck) html += buildInitialInspectResultHtml(item);
+        html += buildRenovationCatsHtml(item.applyId, 'inspect', false);
+        html += buildMerchantSelfCheckHtml(item.applyId);
+        var isRecheckFlow = isRecheck || item.isRecheck;
+        var showResultSelection = true;
+        html += '<div class="detail-section">';
+        if (showResultSelection) {
+            html += secTitle('巡检结果');
+            html += '<div class="rev-row" style="margin-bottom:12px;"><span class="rev-btn rev-pass" id="inspectResultNormal" onclick="setInspectResult(\'normal\')">正常</span><span class="rev-btn" id="inspectResultAbnormal" onclick="setInspectResult(\'abnormal\')">存在异常</span></div>';
+            html += '<div id="inspectAbnormalArea" style="display:none;">';
+            html += '<label class="form-label"><span class="req">*</span> 异常描述</label><textarea class="reject-reason-textarea" id="inspectAbnormalText" placeholder="请描述现场异常情况"></textarea>';
+            html += '<label class="form-label" style="margin-top:12px;"><span class="req">*</span> 整改类型</label>';
+            html += '<div class="rev-row" style="margin-bottom:8px;"><span class="rev-btn rev-pass" id="inspectRectifyOnsite" onclick="setInspectRectifyType(\'onsite\')">现场整改</span><span class="rev-btn" id="inspectRectifyStop" onclick="setInspectRectifyType(\'stop\')">停工整改</span></div>';
+            html += '<p class="form-hint" id="inspectRectifyHint">提交后将生成待复检任务，整改完成后需再次现场巡检确认。</p></div>';
+        }
+        html += '<label class="form-label"' + (showResultSelection ? '' : ' style="margin-top:0;"') + '>巡检描述</label><textarea class="reject-reason-textarea" id="inspectDescriptionText" placeholder="请填写现场巡检情况说明" style="margin-bottom:12px;"></textarea>';
+        html += '<label class="form-label"><span class="req">*</span> ' + (isRecheckFlow ? '复检现场照片' : '现场照片') + '</label>';
+        html += '<p class="form-hint" id="inspectPhotoHint">请拍照或从相册选择（必填，相册一次最多可选9张，合计最多9张）。</p>';
+        html += '<div class="photo-upload-grid" id="inspectPhotoGrid"><img class="photo-upload-box" src="' + DATA_UPLOADED_IMAGE + '" style="border:none;background:none;object-fit:cover;cursor:pointer;width:160px;height:135px;" onclick="pickInspectPhotos()"></div></div>';
+        document.getElementById('inspectFormContent').innerHTML = html;
+        if (showResultSelection) setInspectResult('normal');
+        showPage('inspect-form');
+    };
+
+    window.pickInspectPhotos = function() {
+        var remaining = INSPECT_PHOTO_MAX - inspectFormPhotos.length;
+        if (remaining <= 0) {
+            alert('最多上传' + INSPECT_PHOTO_MAX + '张');
+            return;
+        }
+        var maxPick = Math.min(remaining, INSPECT_PHOTO_MAX);
+        var input = prompt('原型：模拟相册多选，请输入本次选择张数（1-' + maxPick + '，一次最多9张）', '1');
+        if (input === null) return;
+        var n = parseInt(input, 10);
+        if (isNaN(n) || n < 1) {
+            alert('请输入有效张数');
+            return;
+        }
+        n = Math.min(n, maxPick);
+        for (var i = 0; i < n; i++) {
+            inspectFormPhotos.push('现场照片' + inspectFormPhotos.length + '.jpg');
+        }
+        renderInspectPhotoGrid();
+    };
+
+    window.renderInspectPhotoGrid = function() {
+        var el = document.getElementById('inspectPhotoGrid');
+        if (!el) return;
+        var html = '';
+        inspectFormPhotos.forEach(function() {
+            html += '<div class="photo-upload-box filled" style="background:#f0f0f0;font-size:24px;">📷</div>';
+        });
+        if (inspectFormPhotos.length < INSPECT_PHOTO_MAX) {
+            html += '<img class="photo-upload-box" src="' + DATA_UPLOADED_IMAGE + '" style="border:none;background:none;object-fit:cover;cursor:pointer;width:160px;height:135px;" onclick="pickInspectPhotos()">';
+        }
+        el.innerHTML = html;
+        var hintEl = document.getElementById('inspectPhotoHint');
+        if (hintEl) {
+            hintEl.textContent = '请拍照或从相册选择（必填，相册一次最多可选9张，合计最多9张）。已上传 ' + inspectFormPhotos.length + '/' + INSPECT_PHOTO_MAX + ' 张。';
+        }
+    };
+
+    window.setInspectResult = function(r) {
+        var normalEl = document.getElementById('inspectResultNormal');
+        var abnormalEl = document.getElementById('inspectResultAbnormal');
+        if (normalEl) normalEl.className = 'rev-btn' + (r === 'normal' ? ' rev-pass' : '');
+        if (abnormalEl) abnormalEl.className = 'rev-btn' + (r === 'abnormal' ? ' rev-reject' : '');
+        document.getElementById('inspectAbnormalArea').style.display = r === 'abnormal' ? 'block' : 'none';
+        if (r === 'abnormal') setInspectRectifyType('onsite');
+    };
+
+    window.setInspectRectifyType = function(type) {
+        inspectRectifyType = type;
+        var onsiteEl = document.getElementById('inspectRectifyOnsite');
+        var stopEl = document.getElementById('inspectRectifyStop');
+        var hintEl = document.getElementById('inspectRectifyHint');
+        if (!onsiteEl || !stopEl) return;
+        onsiteEl.className = 'rev-btn' + (type === 'onsite' ? ' rev-pass' : '');
+        stopEl.className = 'rev-btn' + (type === 'stop' ? ' rev-pass' : '');
+        if (hintEl) {
+            hintEl.textContent = type === 'onsite'
+                ? '提交后将生成待复检任务，整改完成后需再次现场巡检确认。'
+                : '提交后该商户将由「施工中」转为「停工整改」，复工前须完成停工整改复核。';
+        }
+    };
+
+    window.removeInspectFromList = function(inspectId, listKey) {
+        inspectData[listKey] = (inspectData[listKey] || []).filter(function(d) { return d.id !== inspectId; });
+    };
+
+    window.updateInspectTabBadge = function(tab, count) {
+        updateTabBadge(document.querySelector('#inspectTabs .tab[data-tab="' + tab + '"]'), count);
+    };
+
+    window.showInspectFormBack = function() {
+        var target = inspectFormBackTarget;
+        inspectFormBackTarget = 'inspect-list';
+        if (target === 'construction-detail' && currentConstructionId) {
+            showConstructionDetail(currentConstructionId);
+        } else {
+            showPage('inspect-list');
+        }
+    };
+
+    window.startInspectFromConstruction = function(applyId) {
+        currentConstructionId = applyId;
+        var task = inspectData.today.find(function(d) { return d.applyId === applyId; });
+        openInspectForm(task ? task.id : 'IN002', false, 'construction-detail');
+    };
+
+    function filterStopRectifyList(list) {
+        return (list || []).filter(function(item) { return item.needStop; });
+    }
+
+    function closeOnsiteRectifyByApplyId(applyId, now) {
+        ['pending', 'review'].forEach(function(tab) {
+            var kept = [];
+            (rectifyData[tab] || []).forEach(function(r) {
+                if (r.applyId === applyId && !r.needStop) {
+                    r.closeTime = now || '2026-05-20 16:00';
+                    r.reviewer = '赵经理';
+                    r.reviewResult = 'pass';
+                    r.closedByRecheck = true;
+                    rectifyData.closed.unshift(r);
+                } else {
+                    kept.push(r);
+                }
+            });
+            rectifyData[tab] = kept;
+        });
+    }
+
+    window.confirmResumeWork = function(id) {
+        alert('已取消手动确认复工，停工整改复核通过后将自动恢复施工');
+    };
+
+    window.submitInspect = function() {
+        var item = findInspectItem(currentInspectId);
+        if (!item) { alert('巡检任务不存在'); return; }
+        var isRecheck = !!item.isRecheck;
+        var showResultSelection = true;
+        var abnormalEl = document.getElementById('inspectResultAbnormal');
+        var isAbnormal = showResultSelection && abnormalEl && abnormalEl.classList.contains('rev-reject');
+        var now = '2026-05-20 14:30';
+        var inspectDescEl = document.getElementById('inspectDescriptionText');
+        var inspectDescription = inspectDescEl ? (inspectDescEl.value || '').trim() : '';
+        if (!inspectFormPhotos.length) { alert('请上传现场照片'); return; }
+
+        if (isAbnormal) {
+            var abnormalText = (document.getElementById('inspectAbnormalText').value || '').trim();
+            if (!abnormalText) { alert('请填写异常描述'); return; }
+            var rectifyTypeText = inspectRectifyType === 'stop' ? '停工整改' : '现场整改';
+
+            if (isRecheck) {
+                removeInspectFromList(currentInspectId, 'recheck');
+                inspectData.done.unshift({
+                    id: item.id,
+                    applyId: item.applyId,
+                    title: item.title,
+                    certNo: item.certNo,
+                    category: item.category,
+                    department: item.department || resolveInspectCategoryDept(item.applyId).department,
+                    tab: 'done',
+                    result: '复检仍异常',
+                    abnormalText: abnormalText,
+                    inspectDescription: inspectDescription,
+                    rectifyType: rectifyTypeText,
+                    inspectTime: now,
+                    person: '赵经理'
+                });
+                if (inspectRectifyType === 'stop') {
+                    markMerchantStopped(item.applyId, '复检仍异常-停工整改：' + abnormalText);
+                    createRectifyFromInspect(item, abnormalText, true);
+                    alert('复检仍存在异常，已选择停工整改，商户已转为停工整改');
+                } else {
+                    createRectifyFromInspect(item, abnormalText, false);
+                    inspectData.recheck.unshift({
+                        id: 'IN' + Date.now(),
+                        applyId: item.applyId,
+                        title: item.title,
+                        certNo: item.certNo,
+                        category: item.category,
+                        department: item.department || resolveInspectCategoryDept(item.applyId).department,
+                        tab: 'recheck',
+                        abnormalText: abnormalText,
+                        inspectTime: now,
+                        rectifyType: rectifyTypeText,
+                        isRecheck: true
+                    });
+                    alert('复检仍存在异常，已再次生成待复检任务');
+                }
+                updateInspectTabBadge('recheck', inspectData.recheck.length);
+                showPage('inspect-list');
+                switchInspectTab(inspectRectifyType === 'stop' ? 'done' : 'recheck');
+                renderInspectList();
+                updateHomeStats();
+                return;
+            }
+
+            removeInspectFromList(currentInspectId, getInspectSourceKey(item));
+            inspectData.done.unshift({
+                id: item.id,
+                applyId: item.applyId,
+                title: item.title,
+                certNo: item.certNo,
+                category: item.category,
+                department: item.department || resolveInspectCategoryDept(item.applyId).department,
+                tab: 'done',
+                result: '存在异常',
+                abnormalText: abnormalText,
+                inspectDescription: inspectDescription,
+                rectifyType: rectifyTypeText,
+                inspectTime: now,
+                person: '赵经理'
+            });
+
+            if (inspectRectifyType === 'stop') {
+                markMerchantStopped(item.applyId, '巡检异常-停工整改：' + abnormalText);
+                createRectifyFromInspect(item, abnormalText, true);
+                var srcKey = getInspectSourceKey(item);
+                updateInspectTabBadge(srcKey, inspectData[srcKey].length);
+                alert('巡检已提交，已选择停工整改，已通知商户并转为停工整改');
+                showPage('construction-list');
+                switchConstructionTab('stopped');
+                renderConstructionList();
+                updateHomeStats();
+                return;
+            }
+
+            createRectifyFromInspect(item, abnormalText, false);
+            inspectData.recheck.unshift({
+                id: 'IN' + Date.now(),
+                applyId: item.applyId,
+                title: item.title,
+                certNo: item.certNo,
+                category: item.category,
+                department: item.department || resolveInspectCategoryDept(item.applyId).department,
+                tab: 'recheck',
+                abnormalText: abnormalText,
+                inspectTime: now,
+                rectifyType: rectifyTypeText,
+                isRecheck: true
+            });
+            var sourceKey = getInspectSourceKey(item);
+            updateInspectTabBadge(sourceKey, inspectData[sourceKey].length);
+            updateInspectTabBadge('recheck', inspectData.recheck.length);
+            alert('巡检已提交，已通知商户整改并生成待复检任务');
+            showPage('inspect-list');
+            switchInspectTab('recheck');
+            renderInspectList();
+            updateHomeStats();
+            return;
+        }
+
+        if (isRecheck) {
+            removeInspectFromList(currentInspectId, 'recheck');
+            updateInspectTabBadge('recheck', inspectData.recheck.length);
+        } else {
+            var src = getInspectSourceKey(item);
+            removeInspectFromList(currentInspectId, src);
+            updateInspectTabBadge(src, inspectData[src].length);
+        }
+        closeOnsiteRectifyByApplyId(item.applyId, now);
+        inspectData.done.unshift({
+            id: item.id,
+            applyId: item.applyId,
+            title: item.title,
+            certNo: item.certNo,
+            category: item.category,
+            department: item.department || resolveInspectCategoryDept(item.applyId).department,
+            tab: 'done',
+            result: isRecheck ? '复检正常' : '正常',
+            inspectDescription: inspectDescription,
+            inspectTime: now,
+            person: '赵经理'
+        });
+        alert(isRecheck ? '复检通过，任务已关闭' : '巡检提交成功');
+        showPage('inspect-list');
+        switchInspectTab('done');
+        renderInspectList();
+        updateHomeStats();
+    };
+
+    window.showInspectDetail = function(id) {
+        var item = findInspectItem(id) || inspectData.done[0];
+        var isNormal = item.result && item.result.indexOf('正常') >= 0 && item.result.indexOf('异常') < 0;
+        var resultColor = isNormal ? 'var(--primary)' : 'var(--danger)';
+        var html = '<div class="detail-section cats-section">' + secTitle('巡检对象');
+        html += '<div class="detail-row"><span class="detail-label">商户</span><span class="detail-value">' + item.title + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">施工证号</span><span class="detail-value">' + item.certNo + '</span></div>';
+        html += '</div>';
+        html += buildRenovationCatsHtml(item.applyId);
+        html += buildMerchantSelfCheckHtml(item.applyId);
+        html += '<div class="detail-section cats-section">' + secTitle('巡检结果')
+            + '<div class="detail-row"><span class="detail-label">结果</span><span class="detail-value" style="color:' + resultColor + ';">' + (item.result || '正常') + '</span></div>';
+        if (item.inspectDescription) html += '<div class="detail-row" style="align-items:flex-start;"><span class="detail-label">巡检描述</span><span class="detail-value" style="flex:1;line-height:1.6;">' + item.inspectDescription + '</span></div>';
+        if (item.abnormalText) html += '<div class="detail-row"><span class="detail-label">异常说明</span><span class="detail-value" style="color:var(--danger);">' + item.abnormalText + '</span></div>';
+        if (item.rectifyType) html += '<div class="detail-row"><span class="detail-label">整改类型</span><span class="detail-value">' + item.rectifyType + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">巡检时间</span><span class="detail-value">' + item.inspectTime + '</span></div>'
+            + '<div class="detail-row"><span class="detail-label">巡检人</span><span class="detail-value">' + item.person + '</span></div></div>';
+        html += '<div style="height:10px;"></div>';
+        document.getElementById('inspectDetailContent').innerHTML = html;
+        showPage('inspect-detail');
+    };
+
+    window.openRectifyList = function() {
+        showPage('rectify-list');
+        renderRectifyList();
+    };
+
+    window.dailyReportListBack = function() {
+        if (currentDailyReportApplyId) showConstructionDetail(currentDailyReportApplyId);
+        else showPage('home');
+    };
+
+    window.openDailyReportList = function(applyId) {
+        currentDailyReportApplyId = applyId || '';
+        showPage('merchant-report-list');
+        switchDailyReportTab('reported');
+    };
+
+    window.switchDailyReportTab = function(tab) {
+        currentDailyReportTab = tab;
+        document.querySelectorAll('#dailyReportTabs .tab').forEach(function(t) {
+            t.classList.toggle('active', t.getAttribute('data-tab') === tab);
+        });
+        var stats = getDailyReportStats(currentDailyReportApplyId);
+        var br = document.getElementById('dailyReportBadgeReported');
+        var bo = document.getElementById('dailyReportBadgeOverdue');
+        if (br) br.textContent = stats.reported;
+        if (bo) bo.textContent = stats.overdue;
+        renderDailyReportList();
+    };
+
+    window.renderDailyReportList = function() {
+        var list = filterDailyReportList(currentDailyReportTab, currentDailyReportApplyId || undefined);
+        var el = document.getElementById('dailyReportTaskList');
+        if (!list.length) {
+            el.innerHTML = '<div class="empty-state">暂无报备记录</div>';
+            return;
+        }
+        var html = '<div class="count-tip">共找到' + list.length + '条</div>';
+        list.forEach(function(item) {
+            var canDetail = currentDailyReportTab === 'reported';
+            html += '<div class="task-card' + (canDetail ? '' : ' readonly') + '"' + (canDetail ? ' onclick="showDailyReportDetail(\'' + item.id + '\')"' : '') + '>';
+            html += '<div class="card-title-row"><span class="card-green-title">' + item.title + '</span></div>';
+            html += '<div class="info-line">申请编号：' + item.applyId + '</div>';
+            html += '<div class="info-line">施工证号：' + item.certNo + '</div>';
+            html += '<div class="info-line">报备日期：' + item.reportDate + '</div>';
+            if (item.status === 'reported') html += '<div class="info-line">报备时间：' + (item.reportTime || '—') + '</div>';
+            if (item.works.length) {
+                html += '<div class="task-tags special-work-tags">';
+                item.works.forEach(function(w) {
+                    html += '<span class="task-tag ' + w.tagCls + '">' + w.label + '</span>';
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+        });
+        el.innerHTML = html;
+    };
+
+    window.showDailyReportDetail = function(id) {
+        var record = enrichDailyReport(merchantDailyReports.find(function(d) { return d.id === id; }) || merchantDailyReports[0]);
+        var bannerType = record.status === 'reported' ? 'green' : 'red';
+        var bannerTitle = record.statusText;
+        var bannerDesc = record.status === 'reported'
+            ? '商户已在当日报备全部有效特殊作业。'
+            : ('以下作业未在当日报备：' + record.overdueLabels.join('、') + '。请督促商户补报。');
+        var html = buildStatusBanner(bannerType, bannerTitle, bannerDesc);
+        html += '<div class="detail-card">' + secTitle('基本信息');
+        html += '<div class="detail-row"><span class="detail-label">商户名称</span><span class="detail-value">' + record.merchant + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">商铺号</span><span class="detail-value">' + record.shop + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">申请编号</span><span class="detail-value">' + record.applyId + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">施工证号</span><span class="detail-value">' + record.certNo + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">报备日期</span><span class="detail-value">' + record.reportDate + '</span></div>';
+        if (record.status === 'reported') html += '<div class="detail-row"><span class="detail-label">报备时间</span><span class="detail-value">' + (record.reportTime || '—') + '</span></div>';
+        html += '</div>';
+        html += '<div class="detail-card">' + secTitle('特殊作业报备明细');
+        html += '<div class="section-tip">以下为该商户当日各特殊作业的报备情况。</div>';
+        record.works.forEach(function(w, idx) {
+            html += '<div class="work-item' + (idx === record.works.length - 1 ? ' no-border' : '') + '">';
+            html += '<div class="work-hd"><span class="work-name">' + w.label + '</span>';
+            html += '<span class="report-status ' + (w.reported ? 'report-status-done' : 'report-status-pending') + '">' + (w.reported ? '已报备' : '未报备') + '</span></div>';
+            if (w.reported) {
+                html += '<div class="work-field"><span class="work-field-label">报备时间：</span><span class="work-field-value">' + (w.reportTime || '—') + '</span></div>';
+                html += '<div class="work-field"><span class="work-field-label">报备内容：</span><span class="work-field-value">' + (w.content || '—') + '</span></div>';
+                if (w.certs && w.certs.length) {
+                    html += '<div class="work-cert-block"><span class="work-field-label">上传证件：</span><div class="cert-file-col">';
+                    w.certs.forEach(function(cert) { html += buildFileItemHtml(cert); });
+                    html += '</div></div>';
+                }
+            } else {
+                html += '<div class="report-warn">商户未在当日报备该作业，已计入过期未报备。</div>';
+            }
+            html += '</div>';
+        });
+        html += '</div><div style="height:10px;"></div>';
+        document.getElementById('dailyReportDetailContent').innerHTML = html;
+        showPage('merchant-report-detail');
+    };
+
+    window.switchRectifyTab = function(tab) {
+        currentRectifyTab = tab;
+        document.querySelectorAll('#rectifyTabs .tab').forEach(function(t) {
+            t.classList.toggle('active', t.getAttribute('data-tab') === tab);
+        });
+        renderRectifyList();
+    };
+    window.renderRectifyList = function() {
+        var list = filterStopRectifyList(rectifyData[currentRectifyTab] || []);
+        var el = document.getElementById('rectifyTaskList');
+        if (!list.length) {
+            el.innerHTML = '<div class="empty-state">暂无记录</div>';
+            return;
+        }
+        var html = '';
+        if (list.length) html += '<div class="count-tip">共找到' + list.length + '个</div>';
+        list.forEach(function(item) {
+            html += '<div class="task-card" onclick="showRectifyDetail(\'' + item.id + '\',\'' + currentRectifyTab + '\')">';
+            html += '<div class="card-title-row"><span class="card-green-title">' + item.shop + ' · ' + item.merchant + '</span></div>';
+            html += '<div class="info-line">整改单号：' + item.id + '</div>';
+            html += '<div class="info-line">问题类型：' + item.type + '</div>';
+            html += '<div class="info-line">整改期限：' + item.deadline + '</div>';
+            if (currentRectifyTab === 'rejected') {
+                html += '<div class="info-line">驳回时间：' + (item.rejectTime || '—') + '</div>';
+                if (item.reviewOpinion) html += '<div class="info-line">驳回原因：<span style="color:var(--danger);">' + item.reviewOpinion + '</span></div>';
+            }
+            if (currentRectifyTab === 'review' || currentRectifyTab === 'pending') {
+                html += '<div class="card-action task-card-action">' + mkCardBtn('立即复核', 'event.stopPropagation();openRectifyReview(\'' + item.id + '\',\'' + currentRectifyTab + '\')', 'fill') + '</div>';
+            }
+            html += '</div>';
+        });
+        el.innerHTML = html;
+    };
+
+    window.showRectifyDetail = function(id, tab) {
+        currentRectifyId = id;
+        var item = (rectifyData[tab] || []).find(function(d) { return d.id === id; }) || rectifyData.pending[0];
+        document.getElementById('rectifyDetailNavTitle').textContent = '整改详情';
+        var banner = tab === 'pending'
+            ? buildStatusBanner('orange', '待商户整改', '巡检异常已自动生成整改通知，请督促商户在 ' + item.deadline + ' 前完成整改并提交申请复检。')
+            : (tab === 'review'
+                ? buildStatusBanner('orange', '待复核', '商户已提交申请复检，请核实附件说明及整改照片后提交复核结果。')
+                : (tab === 'rejected'
+                    ? buildStatusBanner('red', '复核驳回', '复核不通过，已于 ' + (item.rejectTime || '—') + ' 驳回。请督促商户按复核意见整改后重新提交申请复检。')
+                    : buildStatusBanner('green', '已复工', '停工整改复核通过，已于 ' + item.closeTime + ' 确认复工。')));
+        var html = banner;
+        html += '<div class="detail-card">' + secTitle('整改信息');
+        html += '<div class="detail-row"><span class="detail-label">整改单号</span><span class="detail-value">' + item.id + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">关联申请</span><span class="detail-value">' + item.applyId + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">商户/商铺</span><span class="detail-value">' + item.merchant + ' ' + item.shop + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">问题类型</span><span class="detail-value">' + item.type + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">整改要求</span><span class="detail-value" style="max-width:60%;">' + item.requirement + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">整改期限</span><span class="detail-value">' + item.deadline + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">下发时间</span><span class="detail-value">' + item.issueTime + '</span></div>';
+        html += '<div class="detail-row"><span class="detail-label">下发人</span><span class="detail-value">' + item.issuer + '</span></div>';
+        if (item.fromInspect) html += '<div class="detail-row"><span class="detail-label">来源</span><span class="detail-value">现场巡检异常</span></div>';
+        if (item.needStop) html += '<div class="detail-row"><span class="detail-label">整改类型</span><span class="detail-value" style="color:var(--danger);">停工整改</span></div>';
+        html += '</div>';
+        if (tab !== 'pending' && (getRectifyRecheckApply(item) || tab === 'closed' || tab === 'rejected')) html += buildRectifyRecheckApplyHtml(item, (tab === 'closed' || tab === 'rejected') ? '暂无申请复检记录' : undefined);
+        if (tab === 'closed' || tab === 'rejected') html += buildRectifyReviewInfoHtml(item);
+        html += '<div class="detail-card">' + secTitle('流程记录') + '<div class="timeline">';
+        html += '<div class="timeline-item"><div class="timeline-dept">系统自动下发整改通知</div><div class="timeline-meta">' + item.issueTime + ' · ' + (item.issuer || '—') + '</div></div>';
+        if (tab !== 'pending' && (item.replyTime || getRectifyRecheckApply(item) || tab === 'closed' || tab === 'rejected')) html += '<div class="timeline-item"><div class="timeline-dept">商户提交申请复检</div><div class="timeline-meta">' + ((getRectifyRecheckApply(item) && getRectifyRecheckApply(item).applyTime) || item.replyTime || '—') + '</div></div>';
+        if (item.rejectTime) html += '<div class="timeline-item"><div class="tl-hd"><span class="timeline-dept">部门复核驳回</span><span class="tl-status tl-status-reject">已驳回</span></div><div class="timeline-meta">' + item.rejectTime + ' · ' + item.reviewer + '</div></div>';
+        if (item.closeTime) html += '<div class="timeline-item"><div class="timeline-dept">复核通过并复工</div><div class="timeline-meta">' + item.closeTime + ' · ' + item.reviewer + '</div></div>';
+        else if (tab === 'review') html += '<div class="timeline-item wait"><div class="tl-hd"><span class="timeline-dept">待部门复核</span><span class="tl-status tl-status-wait">待处理</span></div><div class="timeline-meta">请现场核实后提交复核结果</div></div>';
+        html += '</div></div><div style="height:10px;"></div>';
+        document.getElementById('rectifyDetailContent').innerHTML = html;
+        var btns = '<button class="btn btn-outline-green btn-outline" onclick="showPage(\'rectify-list\')">返回</button>';
+        if (tab === 'review' || tab === 'pending') btns += '<button class="btn btn-primary btn-fill" onclick="openRectifyReview(\'' + id + '\',\'' + tab + '\')">立即复核</button>';
+        document.getElementById('rectifyDetailBtns').innerHTML = btns;
+        showPage('rectify-detail');
+    };
+
+    window.openRectifyReview = function(id, tab) {
+        currentRectifyId = id;
+        tab = tab || currentRectifyTab || 'review';
+        rectifyReviewResult = 'pass';
+        var item = rectifyData.review.find(function(d) { return d.id === id; })
+            || rectifyData.pending.find(function(d) { return d.id === id; })
+            || rectifyData.review[0]
+            || rectifyData.pending[0];
+        document.getElementById('rectifyReviewSummary').innerHTML =
+            '<div class="detail-card" style="margin-top:16px;">'
+            + secTitle('基本信息')
+            + '<div class="field-row"><span class="f-label">商户</span><span class="f-value">' + item.merchant + ' ' + item.shop + '</span></div>'
+            + '<div class="field-row"><span class="f-label">整改要求</span><span class="f-value">' + item.requirement + '</span></div>'
+            + '</div>'
+            + (tab === 'pending' ? '' : buildRectifyRecheckApplyHtml(item, '商户尚未提交申请复检内容'));
+        var opinionEl = document.getElementById('rectifyReviewOpinion');
+        var opinionBox = document.getElementById('rectifyReviewOpinionBox');
+        if (opinionEl) {
+            opinionEl.value = '';
+        }
+        if (opinionBox) {
+            opinionBox.classList.remove('danger');
+        }
+        rectifyReviewPhotos = [];
+        renderRectifyReviewPhotos();
+        setRectifyReviewResult('pass');
+        showPage('rectify-review');
+    };
+    window.pickRectifyReviewPhotos = function() {
+        var remaining = RECTIFY_REVIEW_PHOTO_MAX - rectifyReviewPhotos.length;
+        if (remaining <= 0) {
+            alert('最多上传' + RECTIFY_REVIEW_PHOTO_MAX + '张');
+            return;
+        }
+        var maxPick = Math.min(remaining, RECTIFY_REVIEW_PHOTO_MAX);
+        var input = prompt('原型：模拟相册多选，请输入本次选择张数（1-' + maxPick + '，一次最多9张）', '1');
+        if (input === null) return;
+        var n = parseInt(input, 10);
+        if (isNaN(n) || n < 1) {
+            alert('请输入有效张数');
+            return;
+        }
+        n = Math.min(n, maxPick);
+        for (var i = 0; i < n; i++) {
+            rectifyReviewPhotos.push('复核现场照片' + rectifyReviewPhotos.length + '.jpg');
+        }
+        renderRectifyReviewPhotos();
+    };
+    window.removeRectifyReviewPhoto = function(idx) {
+        rectifyReviewPhotos.splice(idx, 1);
+        renderRectifyReviewPhotos();
+    };
+    window.renderRectifyReviewPhotos = function() {
+        var el = document.getElementById('rectifyReviewPhotoGrid');
+        if (!el) return;
+        var html = '';
+        rectifyReviewPhotos.forEach(function(p, i) {
+            html += '<div class="photo-upload-box" style="width:160px;height:135px;border:none;background:none;padding:0;position:relative;overflow:hidden;" onclick="alert(\'照片预览：' + p + '（原型占位）\')">'
+                + '<img src="' + DATA_UPLOADED_IMAGE + '" style="width:100%;height:100%;object-fit:cover;display:block;" />'
+                + '<span style="position:absolute;top:2px;right:4px;font-size:14px;color:#fff;text-shadow:0 0 4px rgba(0,0,0,0.6);cursor:pointer;" onclick="event.stopPropagation();removeRectifyReviewPhoto(' + i + ')">×</span></div>';
+        });
+        if (rectifyReviewPhotos.length < RECTIFY_REVIEW_PHOTO_MAX) {
+            html += '<img class="photo-upload-box" src="' + DATA_UPLOADED_IMAGE + '" style="width:160px;height:135px;border:none;background:none;object-fit:cover;cursor:pointer;padding:0;" onclick="pickRectifyReviewPhotos()">';
+        }
+        el.innerHTML = html;
+        var hintEl = document.getElementById('rectifyReviewPhotoHint');
+        if (hintEl) {
+            hintEl.textContent = '请拍照或从相册选择（必填，相册一次最多可选9张，合计最多9张）。已上传 ' + rectifyReviewPhotos.length + '/' + RECTIFY_REVIEW_PHOTO_MAX + ' 张。';
+        }
+    };
+    window.setRectifyReviewResult = function(r) {
+        rectifyReviewResult = r;
+        var passEl = document.getElementById('reviewPassChip');
+        var rejectEl = document.getElementById('reviewRejectChip');
+        if (passEl) passEl.className = 'rev-btn' + (r === 'pass' ? ' rev-pass' : '');
+        if (rejectEl) rejectEl.className = 'rev-btn' + (r === 'reject' ? ' rev-reject' : '');
+        var reqEl = document.getElementById('rectifyReviewOpinionReq');
+        var opinionEl = document.getElementById('rectifyReviewOpinion');
+        var opinionBox = document.getElementById('rectifyReviewOpinionBox');
+        if (reqEl) reqEl.style.display = r === 'reject' ? 'inline' : 'none';
+        if (opinionEl) {
+            opinionEl.placeholder = r === 'reject' ? '请填写复核不通过原因' : '选填';
+        }
+        if (opinionBox && r === 'pass') opinionBox.classList.remove('danger');
+    };
+    window.submitRectifyReview = function() {
+        var item = rectifyData.review.find(function(d) { return d.id === currentRectifyId; })
+            || rectifyData.pending.find(function(d) { return d.id === currentRectifyId; });
+        if (!item) return;
+        var sourceTab = rectifyData.review.some(function(d) { return d.id === item.id; }) ? 'review' : 'pending';
+        if (!rectifyReviewPhotos.length) {
+            alert('请上传拍摄照片');
+            return;
+        }
+        var opinionEl = document.getElementById('rectifyReviewOpinion');
+        if (rectifyReviewResult === 'reject') {
+            var opinion = opinionEl ? (opinionEl.value || '').trim() : '';
+            if (!opinion) {
+                alert('请填写复核意见');
+                var opinionBox = document.getElementById('rectifyReviewOpinionBox');
+                if (opinionBox) opinionBox.classList.add('danger');
+                if (opinionEl) opinionEl.focus();
+                return;
+            }
+        }
+        if (rectifyReviewResult === 'pass') {
+            rectifyData.review = rectifyData.review.filter(function(d) { return d.id !== item.id; });
+            rectifyData.pending = rectifyData.pending.filter(function(d) { return d.id !== item.id; });
+            item.closeTime = '2026-05-20 16:00';
+            item.reviewer = '赵经理';
+            item.reviewResult = 'pass';
+            item.reviewOpinion = opinionEl ? (opinionEl.value || '').trim() : '';
+            item.reviewPhotos = rectifyReviewPhotos.slice();
+            rectifyData.closed.unshift(item);
+            if (item.needStop) {
+                var c = constructionData.find(function(d) { return d.id === item.applyId; });
+                if (c) { c.stopped = false; }
+            }
+            alert('复核通过，已确认复工');
+            switchRectifyTab('closed');
+        } else {
+            rectifyData.review = rectifyData.review.filter(function(d) { return d.id !== item.id; });
+            rectifyData.pending = rectifyData.pending.filter(function(d) { return d.id !== item.id; });
+            item.rejectTime = '2026-05-20 16:00';
+            item.reviewer = '赵经理';
+            item.reviewResult = 'reject';
+            item.reviewOpinion = opinionEl ? (opinionEl.value || '').trim() : '';
+            item.reviewPhotos = rectifyReviewPhotos.slice();
+            rectifyData.rejected.unshift(item);
+            alert('复核不通过，已驳回');
+            switchRectifyTab('rejected');
+        }
+        updateHomeStats();
+        showPage('rectify-list');
+        renderRectifyList();
+    };
+
+    updateHomeStats();
+    renderConstructionList();
+})();
+</script>
+</body>
+</html>
