@@ -1,0 +1,12 @@
+---
+description: 花乡子项目 20260820经营统计：PRD 与面积校验口径
+globs: **
+alwaysApply: false
+---
+
+# 20260820 经营统计
+
+- 先读 `docs/prd/经营统计prd文档.md`；视觉走花乡 `设计规范/PC/`
+- 设计稿：[20260812-经营统计](https://www.figma.com/design/wHG6VFQQYWvoekDyFLxq1A/2026花乡二期?node-id=3728-5074)
+- 字段名、提示语以稿面下方说明原文为准，不要同义改写
+- 产品原型只读不改；缺口只写 PRD「待确认事项」，不臆造统计口径
