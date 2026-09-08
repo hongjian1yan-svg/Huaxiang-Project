@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<!-- #AI:design:file -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>数据中心 · 花乡PC管理系统</title>
+  <link rel="stylesheet" href="https://unpkg.com/element-ui@2.15.14/lib/theme-chalk/index.css" />
+  <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    /* ========== 全局：系统壳 + 两模块共用的基础样式（与 PC 设计规范一致） ========== */
+    :root {
+      --brand-green: #00a73b;
+      --brand-green-hover: #1fb856;
+      --brand-green-active: #009433;
+      --brand-green-tint-border: rgba(0, 167, 59, 0.3);
+      --table-header-text: #919399;
+      --table-body-text: #606266;
+      --input-border: #dddfe6;
+      --input-placeholder: #c1c4cb;
+      --divider: #eceef5;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+      color: #1f2329;
+    }
+
+    .layout { height: 100vh; }
+    .side-menu {
+      background: #fff;
+      border-right: 1px solid #eceef5;
+      overflow: hidden;
+    }
+    .logo {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #1f2329;
+      font-size: 16px;
+      font-weight: 600;
+      border-bottom: 1px solid #eceef5;
+    }
+    .logo-badge {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--brand-green);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .side-menu .el-menu { border-right: none; }
+    .side-menu .el-menu-item.is-active {
+      background-color: var(--brand-green) !important;
+      color: #fff !important;
+    }
+    /* #AI:design:start */
+    .side-menu .el-menu-item:not(.is-active):hover,
+    .side-menu .el-submenu__title:hover {
+      background-color: rgba(0, 167, 59, 0.08) !important;
+      color: var(--brand-green) !important;
+    }
+    /* #AI:design:end */
+    .side-menu .el-submenu.is-opened > .el-submenu__title {
+      color: var(--brand-green);
+    }
+
+    .top-header {
+      background: #fff;
+      border-bottom: 1px solid #e8e8e8;
+      line-height: 56px;
+      font-size: 14px;
+      color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .page-brand { font-weight: 600; }
+    .user-info-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: default;
+      line-height: normal;
+    }
+    .user-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--brand-green);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+    .user-name { color: #333; font-size: 14px; }
+    .user-role { color: #909399; font-size: 13px; }
+
+    .page-main {
+      background: #f1f4f5;
+      padding: 15px;
+      box-sizing: border-box;
+    }
+
+    .el-button--primary {
+      background-color: var(--brand-green);
+      border-color: var(--brand-green);
+    }
+    .el-button--primary:hover,
+    .el-button--primary:focus {
+      background-color: var(--brand-green-hover);
+      border-color: var(--brand-green-hover);
+    }
+    .el-button--primary:active {
+      background-color: var(--brand-green-active);
+      border-color: var(--brand-green-active);
+    }
+    .el-button--text { color: var(--brand-green); }
+    .el-button--text:hover,
+    .el-button--text:focus { color: var(--brand-green-hover); }
+
+    .el-form-item__label { color: #6d6e72; }
+    .el-input__inner,
+    .el-range-editor.el-input__inner {
+      height: 36px;
+      line-height: 36px;
+    }
+    .el-date-editor .el-range-separator { line-height: 28px; }
+    .el-date-editor--daterange { width: 260px; }
+
+    .content-panel.el-card { background-color: #f9fafb; border: none; }
+    .content-panel > .el-card__body { padding: 0; }
+    .filter-panel {
+      background-color: #f2f2f2;
+      margin: 20px 10px 0;
+      padding: 20px;
+    }
+    .filter-panel .el-form-item { margin-bottom: 0; }
+
+    .stats-panel {
+      margin: 16px 10px 0;
+      padding: 20px 8px;
+      background: #fff;
+      border: 1px solid var(--divider);
+    }
+    .stats-row {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: stretch;
+      overflow-x: auto;
+    }
+    .stats-row + .stats-row { margin-top: 16px; }
+    .stat-item {
+      flex: 1 0 0;
+      min-width: 128px;
+      padding: 4px 10px;
+      text-align: center;
+      border-right: 1px solid var(--divider);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-value {
+      display: inline-flex;
+      align-items: baseline;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 600;
+      color: #1f2329;
+      line-height: 1;
+    }
+    .stat-unit {
+      margin-left: 2px;
+      font-size: 12px;
+      font-weight: 400;
+      color: #1f2329;
+      line-height: 1;
+    }
+    /* #AI:design:start */
+    .stat-meta {
+      margin-top: 6px;
+      min-height: 36px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .stat-label {
+      font-size: 13px;
+      font-weight: 400;
+      color: #909399;
+      line-height: 18px;
+    }
+    /* #AI:design:end */
+
+    .table-wrap {
+      margin: 16px 10px 10px;
+      width: calc(100% - 20px);
+      overflow-x: auto;
+      background: #fff;
+      border: 1px solid var(--divider);
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .data-table th,
+    .data-table td {
+      font-size: 14px;
+      line-height: 22px;
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--divider);
+      border-right: 1px solid var(--divider);
+      white-space: nowrap;
+    }
+    .data-table th:last-child,
+    .data-table td:last-child { border-right: none; }
+    .data-table th {
+      color: var(--table-header-text);
+      font-weight: 600;
+      background: #fff;
+    }
+    .data-table td { color: var(--table-body-text); }
+    .op-cell {
+      display: inline-flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+    }
+    .pagination-wrap {
+      display: flex;
+      justify-content: flex-end;
+      padding: 10px 10px 20px;
+    }
+    .el-pagination.is-background .el-pager li:not(.disabled).active {
+      background-color: var(--brand-green);
+    }
+    .detail-drawer { background: #fff; }
+    .detail-drawer .el-drawer__body { overflow-y: auto; }
+    .drawer-header {
+      height: 56px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--divider);
+      color: #1f2329;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .drawer-close {
+      position: fixed;
+      z-index: 2101;
+      top: 14px;
+      left: calc(18% - 28px);
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: var(--brand-green);
+      color: #fff;
+      font-size: 20px;
+      line-height: 28px;
+      cursor: pointer;
+    }
+    .drawer-content { padding: 20px 24px 30px; }
+    .sec-bar {
+      width: 3px;
+      height: 14px;
+      background: var(--brand-green);
+      border-radius: 2px;
+    }
+
+    /* ========== 模块一：车辆检测统计（.m-inspect / .inspect-drawer） ========== */
+    .m-inspect .el-select { width: 160px; }
+    /* #AI:design:start */
+    .m-inspect .stat-date {
+      margin-top: 2px;
+      font-size: 12px;
+      font-weight: 400;
+      color: #909399;
+      line-height: 16px;
+      white-space: nowrap;
+    }
+    /* #AI:design:end */
+    .m-inspect .data-table,
+    .inspect-drawer .data-table { min-width: 720px; }
+    .m-inspect .data-table tbody tr:last-child td,
+    .inspect-drawer .data-table tbody tr:last-child td { border-bottom: none; }
+    .m-inspect .stats-row + .stats-row { margin-top: 16px; }
+    .m-inspect .data-table .col-op { text-align: center; width: 100px; }
+    /* 检测详情抽屉 */
+    .inspect-drawer .drawer-date {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #1f2329;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .inspect-drawer .trend-panel {
+      margin-top: 16px;
+      border: 1px solid var(--divider);
+      background: #fff;
+    }
+    .inspect-drawer .trend-title {
+      padding: 16px 20px;
+      color: #1f2329;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .inspect-drawer .trend-content {
+      display: grid;
+      grid-template-columns: minmax(360px, 1fr) minmax(440px, 1.15fr);
+      min-height: 316px;
+      border-top: 1px solid #f5f6f8;
+    }
+    .inspect-drawer .donut-section {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 34px;
+      padding: 30px;
+      border-right: 1px solid var(--divider);
+    }
+    .inspect-drawer .donut-chart {
+      width: 180px;
+      height: 180px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      position: relative;
+    }
+    .inspect-drawer .donut-chart::after {
+      content: "";
+      position: absolute;
+      inset: 48px;
+      background: #fff;
+      border-radius: 50%;
+    }
+    .inspect-drawer .legend-list { display: grid; gap: 18px; }
+    .inspect-drawer .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #606266;
+      font-size: 14px;
+    }
+    .inspect-drawer .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .inspect-drawer .legend-dot.pass { background: var(--brand-green); }
+    .inspect-drawer .legend-dot.fail { background: #f56c6c; }
+    .inspect-drawer .detail-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-content: center;
+    }
+    .inspect-drawer .detail-metric {
+      min-height: 128px;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 8px;
+      padding: 20px;
+    }
+    .inspect-drawer .detail-metric:nth-child(1),
+    .inspect-drawer .detail-metric:nth-child(2) { border-bottom: 1px solid var(--divider); }
+    .inspect-drawer .detail-metric-value { color: #1f2329; font-size: 34px; font-weight: 600; line-height: 1; }
+    .inspect-drawer .detail-metric-label { color: #606266; font-size: 14px; }
+    .inspect-drawer .detail-table-wrap { margin-top: 20px; overflow-x: auto; border: 1px solid var(--divider); }
+    .inspect-drawer .detail-table { min-width: 900px; }
+    .inspect-drawer .detail-table th { background: #f7f8fa; }
+
+    /* ========== 模块二：换证车辆明细统计（.m-plate / .plate-drawer） ========== */
+    .m-plate .el-select { width: 200px; }
+    .m-plate .data-table,
+    .plate-drawer .data-table { min-width: 1180px; }
+    .m-plate .filter-panel .el-form-item { margin-bottom: 20px; }
+    .m-plate .data-table .merged-cell { vertical-align: middle; text-align: center; }
+    .m-plate .data-table .total-row td {
+      font-weight: 600;
+      color: #1f2329;
+      background: #f7f8fa;
+      border-bottom: none;
+    }
+    .m-plate .col-idx { width: 60px; text-align: center; }
+    .m-plate .col-market { width: 250px; white-space: normal; word-break: break-all; }
+    .m-plate .col-date { width: 120px; }
+    .m-plate .col-op { width: 90px; }
+    .m-plate .data-table th.col-idx { text-align: center; }
+    .m-plate .detail-action { color: var(--brand-green); padding: 0; }
+    .m-reprint .data-table { min-width: 1180px; table-layout: auto; }
+    .m-reprint .col-idx { width: 60px; text-align: center; }
+    .m-reprint .data-table th.col-idx { text-align: center; }
+    .m-reprint .muted-text { margin-top: 3px; color: #909399; font-size: 12px; }
+    .m-reprint .filter-actions { display: block; width: 100%; margin-top: 20px; margin-bottom: 0; }
+    .m-reprint .data-table th,
+    .m-reprint .data-table td { white-space: normal; word-break: break-word; }
+    .m-reprint .data-table .col-market { width: 250px; white-space: nowrap; }
+    .m-reprint .data-table .col-merchant { width: 150px; }
+    .m-reprint .data-table .col-vehicle-info { width: 340px; min-width: 340px; white-space: nowrap; }
+    .m-reprint .data-table .col-type,
+    .m-reprint .data-table .col-price,
+    .m-reprint .data-table .col-amount,
+    .m-reprint .data-table .col-pay,
+    .m-reprint .data-table .col-operator { width: 112px; white-space: nowrap; }
+    .m-reprint .data-table .col-op { width: 68px; white-space: nowrap; }
+    /* #AI:design:start */
+    .m-storage .el-select { width: 200px; }
+    .m-storage .data-table { min-width: 1240px; table-layout: auto; }
+    .m-storage .filter-actions { display: block; width: 100%; margin-top: 20px; margin-bottom: 0; }
+    .m-storage .data-table th,
+    .m-storage .data-table td { white-space: normal; word-break: break-word; }
+    .m-storage .data-table .col-idx { width: 60px; text-align: center; }
+    .m-storage .data-table .col-market { width: 250px; white-space: nowrap; }
+    .m-storage .data-table .col-merchant { width: 150px; }
+    .m-storage .data-table .col-vehicle-info { width: 340px; min-width: 340px; white-space: nowrap; }
+    .m-storage .data-table .col-type,
+    .m-storage .data-table .col-price,
+    .m-storage .data-table .col-fee,
+    .m-storage .data-table .col-pay,
+    .m-storage .data-table .col-operator { width: 112px; white-space: nowrap; }
+    .m-storage .data-table .col-op { width: 68px; white-space: nowrap; }
+    /* #AI:design:end */
+    /* #AI:design:start */
+    .m-merchant-rank .el-select { width: 200px; }
+    .m-merchant-rank .el-tabs { margin: 20px 10px 0; }
+    .m-merchant-rank .el-tabs__header { margin: 0; background: #fff; border: 1px solid var(--divider); }
+    .m-merchant-rank .el-tabs__nav-wrap::after { display: none; }
+    .m-merchant-rank .el-tabs__item { min-width: 140px; height: 40px; padding: 0 28px; line-height: 40px; text-align: center; border-right: 1px solid var(--divider); }
+    .m-merchant-rank .el-tabs__item,
+    .m-merchant-rank .el-tabs__item.is-active,
+    .m-merchant-rank .el-tabs__item:hover { color: #1f2329; }
+    .m-merchant-rank .el-tabs__item.is-active { background: #f2f2f2; }
+    .m-merchant-rank .el-tabs__active-bar { display: none; }
+    .m-merchant-rank .el-tabs__content { display: none; }
+    .m-merchant-rank .filter-panel { margin-top: 0; }
+    .m-merchant-rank .data-table { min-width: 980px; }
+    .m-merchant-rank .data-table.all-merchant-table { min-width: 1280px; }
+    .m-merchant-rank .data-table.inbound-merchant-table { min-width: 1500px; }
+    .m-merchant-rank .col-rank { width: 72px; text-align: center; }
+    .m-merchant-rank .col-market { width: 250px; white-space: nowrap; }
+    .m-merchant-rank .col-merchant { width: 180px; }
+    .m-merchant-rank .metric-cell { width: 150px; white-space: nowrap; }
+    .m-merchant-rank .active-metric { color: var(--brand-green); font-weight: 600; background: rgba(0, 167, 59, 0.06); }
+    .m-merchant-rank .stat-item { min-height: 76px; flex-direction: row; justify-content: center; gap: 14px; }
+    .m-merchant-rank .merchant-stat-main { min-width: 88px; text-align: left; }
+    .m-merchant-rank .merchant-stat-main .stat-value { justify-content: flex-start; }
+    .m-merchant-rank .merchant-stat-label { margin-top: 8px; color: #1f2329; font-size: 13px; font-weight: 600; line-height: 18px; }
+    .m-merchant-rank .merchant-stat-trends { color: #606266; font-size: 12px; line-height: 24px; white-space: nowrap; }
+    .m-merchant-rank .merchant-stat-trends span { margin-left: 4px; }
+    .m-merchant-rank .is-up { color: #f56c6c; }
+    .m-merchant-rank .is-down { color: var(--brand-green); }
+    .m-merchant-rank .is-flat { color: #909399; }
+    .m-merchant-rank .merchant-podium { min-height: 178px; margin: 16px 10px 0; padding: 20px 32px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: #fff; border: 1px solid var(--divider); }
+    .m-merchant-rank .podium-card { display: flex; align-items: center; justify-content: center; gap: 12px; min-width: 0; }
+    .m-merchant-rank .podium-card.rank-1 { grid-column: 2; grid-row: 1; align-self: start; }
+    .m-merchant-rank .podium-card.rank-2 { grid-column: 1; grid-row: 1; align-self: start; margin-top: 48px; }
+    .m-merchant-rank .podium-card.rank-3 { grid-column: 3; grid-row: 1; align-self: start; margin-top: 48px; }
+    .m-merchant-rank .podium-badge { width: 58px; height: 58px; object-fit: contain; flex: 0 0 auto; }
+    .m-merchant-rank .rank-1 .podium-badge { width: 80px; height: 80px; }
+    .m-merchant-rank .podium-info { min-width: 0; }
+    .m-merchant-rank .podium-name { overflow: hidden; color: #1f2329; font-size: 16px; font-weight: 600; line-height: 22px; text-overflow: ellipsis; white-space: nowrap; }
+    .m-merchant-rank .podium-total { display: inline-block; margin-top: 6px; padding: 3px 10px; color: #1f2329; font-size: 13px; font-weight: 600; line-height: 18px; background: #f4f4f5; border-radius: 12px; }
+    .m-merchant-rank .podium-split { margin-top: 5px; color: #909399; font-size: 12px; line-height: 18px; white-space: nowrap; }
+    .m-merchant-rank .sort-trigger { display: inline-flex; align-items: center; gap: 6px; padding: 0; color: inherit; font: inherit; background: none; border: 0; cursor: pointer; }
+    .m-merchant-rank .sort-arrows { position: relative; width: 10px; height: 14px; }
+    .m-merchant-rank .sort-arrow { position: absolute; left: 1px; width: 0; height: 0; border-right: 4px solid transparent; border-left: 4px solid transparent; }
+    .m-merchant-rank .sort-arrow-up { top: 0; border-bottom: 5px solid #c0c4cc; }
+    .m-merchant-rank .sort-arrow-down { bottom: 0; border-top: 5px solid #c0c4cc; }
+    .m-merchant-rank .sort-arrow-up.is-active { border-bottom-color: var(--brand-green); }
+    .m-merchant-rank .sort-arrow-down.is-active { border-top-color: var(--brand-green); }
+    /* #AI:design:end */
+    /* 换证详情抽屉 */
+    .plate-drawer .sec-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #1f2329;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .plate-drawer .info-grid {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      border: 1px solid var(--divider);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .plate-drawer .info-cell {
+      min-width: 0;
+      padding: 12px 16px;
+      border-right: 1px solid var(--divider);
+      border-bottom: 1px solid var(--divider);
+    }
+    /* 两列布局，共 5 个单元格：末行仅第 5 格，去其下边框（其余行分隔线保留） */
+    .plate-drawer .info-cell:last-child { border-bottom: none; }
+    .plate-drawer .info-label { color: #909399; font-size: 13px; line-height: 18px; }
+    .plate-drawer .info-value { margin-top: 4px; color: #1f2329; font-size: 13px; line-height: 20px; word-break: break-all; }
+    .plate-drawer .vehicle-table-wrap { margin-top: 20px; overflow-x: auto; border: 1px solid var(--divider); }
+    .plate-drawer .vehicle-table { min-width: 1200px; }
+    .plate-drawer .vehicle-table th { background: #f7f8fa; }
+    .plate-drawer .vehicle-table td { white-space: normal; word-break: break-all; }
+    .plate-drawer .vehicle-table .vt-nowrap { white-space: nowrap; }
+    .plate-drawer .combo-table { margin-top: 24px; }
+    .plate-drawer .combo-values { min-width: 0; table-layout: fixed; width: 100%; max-width: 720px; }
+    .plate-drawer .combo-values th, .plate-drawer .combo-values td { text-align: center; white-space: normal; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <el-container class="layout">
+      <el-aside width="220px" class="side-menu">
+        <div class="logo">
+          <span class="logo-badge">花</span>
+          <span>花乡PC管理系统</span>
+        </div>
+        <el-menu
+          :default-active="activeModule"
+          unique-opened
+          background-color="#ffffff"
+          text-color="#333333"
+          active-text-color="#ffffff"
+          @select="handleMenuSelect"
+        >
+          <el-submenu index="data-center">
+            <template slot="title">
+              <i class="el-icon-data-analysis"></i>
+              <span>数据中心</span>
+            </template>
+            <el-menu-item index="inspect-report">车辆检测统计</el-menu-item>
+            <el-menu-item index="plate-change">换证车辆明细统计</el-menu-item>
+            <el-menu-item index="reprint-label">补打价签明细统计</el-menu-item>
+            <!-- #AI:dev:start --><el-menu-item index="storage-transfer">移库车辆明细统计</el-menu-item><!-- #AI:dev:end -->
+            <!-- #AI:dev:start --><el-menu-item index="merchant-ranking">商户排名统计</el-menu-item><!-- #AI:dev:end -->
+          </el-submenu>
+        </el-menu>
+      </el-aside>
+
+      <el-container>
+        <el-header class="top-header" height="56px">
+          <span class="page-brand">【市场端管理后台】</span>
+          <span class="user-info-trigger">
+            <span class="user-avatar">严</span>
+            <span class="user-name">严洪健</span>
+            <span class="user-role">超级管理员</span>
+          </span>
+        </el-header>
+
+        <el-main class="page-main">
+          <!-- v-show 保持三个模块常驻：假数据只生成一次，切菜单数字与筛选状态稳定 -->
+          <inspect-report v-show="activeModule === 'inspect-report'"></inspect-report>
+          <plate-change v-show="activeModule === 'plate-change'"></plate-change>
+          <reprint-label v-show="activeModule === 'reprint-label'"></reprint-label>
+          <!-- #AI:dev:start --><storage-transfer v-show="activeModule === 'storage-transfer'"></storage-transfer><!-- #AI:dev:end -->
+          <!-- #AI:dev:start --><merchant-ranking v-show="activeModule === 'merchant-ranking'"></merchant-ranking><!-- #AI:dev:end -->
+        </el-main>
+      </el-container>
+    </el-container>
+  </div>
+
+  <!-- ================= 模块一：车辆检测统计 模板 ================= -->
+  <script type="text/x-template" id="tpl-inspect-report">
+    <div class="m-inspect">
+      <el-card shadow="never" class="content-panel">
+        <div class="filter-panel">
+          <el-form :inline="true" :model="filter" @submit.native.prevent>
+            <el-form-item label="类别">
+              <el-select v-model="filter.category" placeholder="请选择">
+                <el-option label="全部" value="全部"></el-option>
+                <el-option label="出库车辆" value="出库车辆"></el-option>
+                <el-option label="入库车辆" value="入库车辆"></el-option>
+              </el-select>
+            </el-form-item>
+            <!-- #AI:dev:start -->
+            <el-form-item label="所属市场">
+              <el-select v-model="filter.market" clearable placeholder="请选择市场">
+                <el-option v-for="m in markets" :key="m" :label="m" :value="m"></el-option>
+              </el-select>
+            </el-form-item>
+            <!-- #AI:dev:end -->
+            <el-form-item label="日期">
+              <el-date-picker
+                v-model="filter.dateRange"
+                type="daterange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="yyyy-MM-dd"
+              />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleSearch">查询</el-button>
+              <el-button @click="handleReset">重置</el-button>
+              <el-button type="primary" @click="handleExport">导出</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+
+        <div class="stats-panel">
+          <div class="stats-row" v-for="(row, rowIndex) in statRows" :key="rowIndex">
+            <div class="stat-item" v-for="item in row" :key="item.label">
+              <div class="stat-value">
+                <span>{{ item.value }}</span>
+                <span class="stat-unit" v-if="item.unit">{{ item.unit }}</span>
+              </div>
+              <!-- #AI:design:start -->
+              <div class="stat-meta">
+                <div class="stat-label">{{ item.label }}</div>
+                <div class="stat-date" v-if="item.date">{{ item.date }}</div>
+              </div>
+              <!-- #AI:design:end -->
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width:60px;text-align:center">序号</th>
+                <!-- #AI:dev:start --><th>所属市场</th><!-- #AI:dev:end -->
+                <th>日期</th>
+                <th>入库数量</th>
+                <th>出库数量</th>
+                <!-- #AI:design:start -->
+                <th>入库检测数量</th>
+                <!-- #AI:design:end -->
+                <th class="col-op">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, idx) in pagedList" :key="row.id">
+                <td style="text-align:center">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+                <!-- #AI:dev:start --><td>{{ row.market }}</td><!-- #AI:dev:end -->
+                <td>{{ row.date }}</td>
+                <td>{{ row.inCount }}</td>
+                <td>{{ row.outCount }}</td>
+                <td>{{ row.inspectCount }}</td>
+                <td class="col-op">
+                  <div class="op-cell">
+                    <el-button type="text" @click="openDetail(row)">详情</el-button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination-wrap">
+          <el-pagination
+            background
+            layout="total, prev, pager, next"
+            :current-page="currentPage"
+            :page-size="pageSize"
+            :total="filteredList.length"
+            @current-change="handlePageChange"
+          />
+        </div>
+      </el-card>
+
+      <el-drawer
+        :visible.sync="detailVisible"
+        direction="rtl"
+        size="82%"
+        :with-header="false"
+        custom-class="detail-drawer inspect-drawer"
+        append-to-body>
+        <div class="drawer-header">车辆检测详情</div>
+        <div class="drawer-content">
+          <div class="drawer-date"><span class="sec-bar"></span><span>{{ detailRow.date }}</span></div>
+          <section class="trend-panel">
+            <div class="trend-title">趋势分析</div>
+            <div class="trend-content">
+              <div class="donut-section">
+                <div class="donut-chart" :style="{ background: 'conic-gradient(var(--brand-green) 0 ' + detailPassRate + '%, #f56c6c ' + detailPassRate + '% 100%)' }"></div>
+                <div class="legend-list">
+                  <div class="legend-item"><span class="legend-dot pass"></span>检测通过</div>
+                  <div class="legend-item"><span class="legend-dot fail"></span>检测未通过</div>
+                </div>
+              </div>
+              <div class="detail-metrics">
+                <div class="detail-metric"><span class="detail-metric-value">{{ detailSummary.total }}</span><span class="detail-metric-label">检测总数</span></div>
+                <div class="detail-metric"><span class="detail-metric-value">{{ detailSummary.passed }}</span><span class="detail-metric-label">检测通过</span></div>
+                <div class="detail-metric"><span class="detail-metric-value">{{ detailSummary.failed }}</span><span class="detail-metric-label">检测未通过</span></div>
+                <div class="detail-metric"><span class="detail-metric-value">{{ detailSummary.failedRate }}%</span><span class="detail-metric-label">未通过占比</span></div>
+              </div>
+            </div>
+          </section>
+          <div class="detail-table-wrap">
+            <table class="data-table detail-table">
+              <thead><tr><th>品牌车系</th><th>车架号</th><th>检测时间</th><th>检测结果</th></tr></thead>
+              <tbody>
+                <tr v-for="item in detailItems" :key="item.vin">
+                  <td>{{ item.model }}</td><td>{{ item.vin }}</td><td>{{ item.inspectTime }}</td><td>{{ item.result }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </el-drawer>
+      <button v-if="detailVisible" class="drawer-close" type="button" @click="detailVisible = false" aria-label="关闭">×</button>
+    </div>
+  </script>
+
+  <!-- ================= 模块二：换证车辆明细统计 模板 ================= -->
+  <script type="text/x-template" id="tpl-plate-change">
+    <div class="m-plate">
+      <el-card shadow="never" class="content-panel">
+        <div class="filter-panel">
+          <el-form :inline="true" :model="filter" @submit.native.prevent>
+            <el-form-item label="所属市场">
+              <el-select v-model="filter.market" clearable placeholder="请选择市场">
+                <el-option v-for="m in markets" :key="m" :label="m" :value="m"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="操作人员">
+              <el-select v-model="filter.operator" clearable placeholder="请选择操作人员">
+                <el-option v-for="o in operators" :key="o" :label="o" :value="o"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="时间日期">
+              <el-date-picker
+                v-model="filter.dateRange"
+                type="daterange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="yyyy-MM-dd"
+              />
+            </el-form-item>
+            <el-form-item label="换证来源">
+              <el-select v-model="filter.changeSource">
+                <el-option label="全部" value="全部"></el-option>
+                <el-option v-for="source in changeSources" :key="source" :label="source" :value="source"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="车辆类型">
+              <el-select v-model="filter.vehicleType">
+                <el-option label="全部" value="全部"></el-option>
+                <el-option v-for="type in vehicleTypes" :key="type" :label="type" :value="type"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleSearch">查询</el-button>
+              <el-button @click="handleReset">重置</el-button>
+              <el-button type="primary" @click="handleExport">查询数据导出</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+
+        <div class="stats-panel">
+          <div class="stats-row" v-for="(row, rowIndex) in statRows" :key="rowIndex">
+            <div class="stat-item" v-for="item in row" :key="item.label">
+              <div class="stat-value">
+                <span>{{ item.value }}</span>
+                <span class="stat-unit" v-if="item.unit">{{ item.unit }}</span>
+              </div>
+              <div class="stat-meta">
+                <div class="stat-label">{{ item.label }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="col-idx">序号</th>
+                <th class="col-market">所属市场</th>
+                <th class="col-date">换证车辆日期</th>
+                <th>操作人员</th>
+                <th>换证车辆来源</th>
+                <th>车辆类型</th>
+                <th>数量</th>
+                <th>换证车辆服务费（元）</th>
+                <th class="col-op" style="text-align:center">操作</th>
+              </tr>
+            </thead>
+            <tbody v-for="(rec, idx) in pagedList" :key="rec.id">
+              <tr v-for="(sub, si) in filteredSubs(rec)" :key="rec.id + '-' + si">
+                <td class="col-idx">{{ rowSequence(idx, si) }}</td>
+                <td class="col-market">{{ rec.market }}</td>
+                <td>{{ rec.date }}</td>
+                <td>{{ rec.operator }}</td>
+                <td>{{ sub.source }}</td>
+                <td>{{ sub.vtype }}</td>
+                <td>{{ sub.qty }}</td>
+                <td>{{ sub.qty * 10 }}</td>
+                <td class="col-op">
+                  <div class="op-cell">
+                    <el-button type="text" class="detail-action" @click="openDetail(rec, sub)">详情</el-button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination-wrap">
+          <el-pagination
+            background
+            layout="total, prev, pager, next"
+            :current-page="currentPage"
+            :page-size="pageSize"
+            :total="filteredList.length"
+            @current-change="handlePageChange"
+          />
+        </div>
+      </el-card>
+
+      <el-drawer
+        :visible.sync="detailVisible"
+        direction="rtl"
+        size="82%"
+        :with-header="false"
+        custom-class="detail-drawer plate-drawer"
+        append-to-body>
+        <div class="drawer-header">换证车辆明细详情</div>
+        <div class="drawer-content" v-if="detailRec">
+          <div class="sec-title"><span class="sec-bar"></span><span>换证汇总信息</span></div>
+          <div class="info-grid">
+            <div class="info-cell"><div class="info-label">所属市场</div><div class="info-value">{{ detailRec.market }}</div></div>
+            <div class="info-cell"><div class="info-label">换证车辆日期</div><div class="info-value">{{ detailRec.date }}</div></div>
+            <div class="info-cell"><div class="info-label">{{ detailSub.source === '指标腾出换证' ? '腾出人' : '操作人员' }}</div><div class="info-value">{{ detailPersonText }}</div></div>
+            <div class="info-cell"><div class="info-label">换证车辆来源</div><div class="info-value">{{ detailSub.source }}</div></div>
+            <div class="info-cell"><div class="info-label">车辆类型</div><div class="info-value">{{ detailSub.vtype }}</div></div>
+            <div class="info-cell"><div class="info-label">数量</div><div class="info-value">{{ detailSub.qty }} 辆</div></div>
+            <div class="info-cell"><div class="info-label">换证车辆服务费</div><div class="info-value">{{ detailSub.qty * 10 }} 元</div></div>
+          </div>
+          <div class="sec-title" style="margin-top:24px"><span class="sec-bar"></span><span>车辆明细列表</span></div>
+          <div class="vehicle-table-wrap">
+            <table class="data-table vehicle-table">
+              <thead>
+                <tr>
+                  <th class="vt-nowrap" style="width:110px">车牌号</th><th style="width:170px">车架号</th><th style="width:220px">车型</th>
+                  <th v-if="detailSub.source !== '指标腾出换证'" class="vt-nowrap" style="width:100px">证件类型</th><th v-if="detailSub.source !== '指标腾出换证'" class="vt-nowrap" style="width:140px">新车预售价（万元）</th><th class="vt-nowrap" style="width:120px">支付方式</th><th class="vt-nowrap" style="width:90px">{{ detailSub.source === '指标腾出换证' ? '腾出人' : '经办人' }}</th><th style="width:130px">备注</th><th class="vt-nowrap" style="width:110px">换证日期</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="v in detailVehicles" :key="v.plate">
+                  <td>{{ v.plate }}</td>
+                  <td>{{ v.vin }}</td>
+                  <td>{{ v.model }}</td>
+                  <td v-if="detailSub.source !== '指标腾出换证'">{{ v.cert }}</td>
+                  <td v-if="detailSub.source !== '指标腾出换证'">{{ v.price }}</td>
+                  <td>{{ v.payType }}</td>
+                  <td>{{ v.agent }}</td>
+                  <td>{{ v.remark }}</td>
+                  <td>{{ v.date }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </el-drawer>
+      <button v-if="detailVisible" class="drawer-close" type="button" @click="detailVisible = false" aria-label="关闭">×</button>
+    </div>
+  </script>
+
+  <!-- ================= 模块三：补打价签车辆明细统计 模板 ================= -->
+  <script type="text/x-template" id="tpl-reprint-label">
+    <div class="m-reprint">
+      <el-card shadow="never" class="content-panel">
+        <div class="filter-panel">
+          <el-form :inline="true" :model="filter" @submit.native.prevent>
+            <el-form-item label="所属市场">
+              <el-select v-model="filter.market" clearable placeholder="请选择市场">
+                <el-option v-for="m in markets" :key="m" :label="m" :value="m"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="所属车商">
+              <el-select v-model="filter.merchant" clearable placeholder="请选择车商">
+                <el-option v-for="m in merchants" :key="m" :label="m" :value="m"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="车辆类型">
+              <el-select v-model="filter.vehicleType">
+                <el-option label="全部" value="全部"></el-option>
+                <el-option v-for="type in vehicleTypes" :key="type" :label="type" :value="type"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="支付方式">
+              <el-select v-model="filter.payType">
+                <el-option label="全部" value="全部"></el-option>
+                <el-option v-for="type in payTypes" :key="type" :label="type" :value="type"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="经办人">
+              <el-select v-model="filter.operator" clearable placeholder="请选择经办人">
+                <el-option v-for="o in operators" :key="o" :label="o" :value="o"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item class="filter-actions">
+              <el-button type="primary" @click="handleSearch">查询</el-button>
+              <el-button @click="handleReset">重置</el-button>
+              <el-button type="primary" @click="handleExport">查询数据导出</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+        <div class="stats-panel">
+          <div class="stats-row">
+            <div class="stat-item" v-for="item in stats" :key="item.label">
+              <div class="stat-value"><span>{{ item.value }}</span><span class="stat-unit" v-if="item.unit">{{ item.unit }}</span></div>
+              <div class="stat-meta"><div class="stat-label">{{ item.label }}</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr>
+              <th class="col-idx">序号</th><th class="col-market">所属市场</th><th>补打价签日期</th><th class="col-merchant">车商名称</th><th class="col-vehicle-info">车辆信息</th><th class="col-type">车辆类型</th><th class="col-price">车辆价格</th><th class="col-amount">补打金额</th><th class="col-pay">支付方式</th><th class="col-operator">经办人</th><th class="col-op">操作</th>
+            </tr></thead>
+            <tbody><tr v-for="(row, idx) in pagedList" :key="row.id">
+              <td class="col-idx">{{ (currentPage - 1) * pageSize + idx + 1 }}</td><td class="col-market">{{ row.market }}</td><td>{{ row.date }}</td><td class="col-merchant">{{ row.merchant }}</td>
+              <td class="col-vehicle-info"><div>{{ row.model }}</div><div class="muted-text">车架号：{{ row.vin }}</div></td><td class="col-type">{{ row.vehicleType }}</td><td class="col-price">{{ row.price }} 万元</td><td class="col-amount">{{ row.amount }} 元</td><td class="col-pay">{{ row.payType }}</td><td class="col-operator">{{ row.operator }}</td><td class="col-op"><el-button type="text" class="detail-action" @click="openDetail(row)">详情</el-button></td>
+            </tr></tbody>
+          </table>
+        </div>
+        <div class="pagination-wrap"><el-pagination background layout="total, prev, pager, next" :current-page="currentPage" :page-size="pageSize" :total="filteredList.length" @current-change="handlePageChange" /></div>
+      </el-card>
+      <el-drawer :visible.sync="detailVisible" direction="rtl" size="82%" :with-header="false" custom-class="detail-drawer plate-drawer" append-to-body>
+        <div class="drawer-header">补打价签明细详情</div>
+        <div class="drawer-content" v-if="detailRow">
+          <div class="sec-title"><span class="sec-bar"></span><span>补打价签信息</span></div>
+          <div class="info-grid">
+            <div class="info-cell"><div class="info-label">所属市场</div><div class="info-value">{{ detailRow.market }}</div></div>
+            <div class="info-cell"><div class="info-label">车商名称</div><div class="info-value">{{ detailRow.merchant }}</div></div>
+            <div class="info-cell"><div class="info-label">补打金额</div><div class="info-value">{{ detailRow.amount }} 元</div></div>
+            <div class="info-cell"><div class="info-label">支付方式</div><div class="info-value">{{ detailRow.payType }}</div></div>
+            <div class="info-cell"><div class="info-label">经办人</div><div class="info-value">{{ detailRow.operator }}</div></div>
+            <div class="info-cell"><div class="info-label">车商负责人</div><div class="info-value">{{ detailRow.manager }}</div></div>
+            <div class="info-cell"><div class="info-label">联系电话</div><div class="info-value">{{ detailRow.managerPhone }}</div></div>
+            <div class="info-cell"><div class="info-label">经办人电话</div><div class="info-value">{{ detailRow.operatorPhone }}</div></div>
+            <div class="info-cell"><div class="info-label">备注</div><div class="info-value">{{ detailRow.remark }}</div></div>
+          </div>
+          <div class="sec-title" style="margin-top:24px"><span class="sec-bar"></span><span>车辆信息</span></div>
+          <div class="info-grid">
+            <div class="info-cell"><div class="info-label">车型</div><div class="info-value">{{ detailRow.model }}</div></div>
+            <div class="info-cell"><div class="info-label">车架号</div><div class="info-value">车架号：{{ detailRow.vin }}</div></div>
+            <div class="info-cell"><div class="info-label">车辆类型</div><div class="info-value">{{ detailRow.vehicleType }}</div></div>
+            <div class="info-cell"><div class="info-label">车辆价格</div><div class="info-value">{{ detailRow.price }} 万元</div></div>
+          </div>
+        </div>
+      </el-drawer>
+      <button v-if="detailVisible" class="drawer-close" type="button" @click="detailVisible = false" aria-label="关闭">×</button>
+    </div>
+  </script>
+
+  <!-- #AI:dev:start -->
+  <!-- ================= 模块四：移库车辆明细统计 模板 ================= -->
+  <script type="text/x-template" id="tpl-storage-transfer">
+    <div class="m-storage">
+      <el-card shadow="never" class="content-panel">
+        <div class="filter-panel">
+          <el-form :inline="true" :model="filter" @submit.native.prevent>
+            <el-form-item label="所属市场"><el-select v-model="filter.market" clearable placeholder="请选择市场"><el-option v-for="m in markets" :key="m" :label="m" :value="m"></el-option></el-select></el-form-item>
+            <el-form-item label="所属车商"><el-select v-model="filter.merchant" clearable placeholder="请选择车商"><el-option v-for="m in merchants" :key="m" :label="m" :value="m"></el-option></el-select></el-form-item>
+            <el-form-item label="车辆类型"><el-select v-model="filter.vehicleType"><el-option label="全部" value="全部"></el-option><el-option v-for="type in vehicleTypes" :key="type" :label="type" :value="type"></el-option></el-select></el-form-item>
+            <el-form-item label="支付方式"><el-select v-model="filter.payType"><el-option label="全部" value="全部"></el-option><el-option v-for="type in payTypes" :key="type" :label="type" :value="type"></el-option></el-select></el-form-item>
+            <el-form-item label="操作人"><el-select v-model="filter.operator" clearable placeholder="请选择操作人"><el-option v-for="o in operators" :key="o" :label="o" :value="o"></el-option></el-select></el-form-item>
+            <el-form-item class="filter-actions"><el-button type="primary" @click="handleSearch">查询</el-button><el-button @click="handleReset">重置</el-button><el-button type="primary" @click="handleExport">查询数据导出</el-button></el-form-item>
+          </el-form>
+        </div>
+        <div class="stats-panel"><div class="stats-row"><div class="stat-item" v-for="item in stats" :key="item.label"><div class="stat-value"><span>{{ item.value }}</span><span class="stat-unit">{{ item.unit }}</span></div><div class="stat-meta"><div class="stat-label">{{ item.label }}</div></div></div></div></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th class="col-idx">序号</th><th class="col-market">所属市场</th><th>车辆移库时间</th><th class="col-merchant">车商名称</th><th class="col-vehicle-info">车辆信息</th><th class="col-type">车辆类型</th><th class="col-price">车辆价格</th><th class="col-fee">移库服务费（元）</th><th class="col-pay">支付方式</th><th class="col-operator">操作人</th><th class="col-op">操作</th></tr></thead>
+            <tbody><tr v-for="(row, idx) in pagedList" :key="row.id"><td class="col-idx">{{ (currentPage - 1) * pageSize + idx + 1 }}</td><td class="col-market">{{ row.market }}</td><td>{{ row.date }}</td><td class="col-merchant">{{ row.merchant }}</td><td class="col-vehicle-info"><div>{{ row.model }}</div><div class="muted-text">车架号：{{ row.vin }}</div></td><td class="col-type">{{ row.vehicleType }}</td><td class="col-price">{{ row.price }} 万元</td><td class="col-fee">{{ row.fee }} 元</td><td class="col-pay">{{ row.payType }}</td><td class="col-operator">{{ row.operator }}</td><td class="col-op"><el-button type="text" class="detail-action" @click="openDetail(row)">详情</el-button></td></tr></tbody>
+          </table>
+        </div>
+        <div class="pagination-wrap"><el-pagination background layout="total, prev, pager, next" :current-page="currentPage" :page-size="pageSize" :total="filteredList.length" @current-change="handlePageChange" /></div>
+      </el-card>
+      <el-drawer :visible.sync="detailVisible" direction="rtl" size="82%" :with-header="false" custom-class="detail-drawer plate-drawer" append-to-body>
+        <div class="drawer-header">移库车辆明细详情</div>
+        <div class="drawer-content" v-if="detailRow">
+          <div class="sec-title"><span class="sec-bar"></span><span>移库车辆信息</span></div>
+          <div class="info-grid">
+            <div class="info-cell"><div class="info-label">所属市场</div><div class="info-value">{{ detailRow.market }}</div></div>
+            <div class="info-cell"><div class="info-label">车辆移库时间</div><div class="info-value">{{ detailRow.date }}</div></div>
+            <div class="info-cell"><div class="info-label">车商名称</div><div class="info-value">{{ detailRow.merchant }}</div></div>
+            <div class="info-cell"><div class="info-label">车辆类型</div><div class="info-value">{{ detailRow.vehicleType }}</div></div>
+            <div class="info-cell"><div class="info-label">车辆价格</div><div class="info-value">{{ detailRow.price }} 万元</div></div>
+            <div class="info-cell"><div class="info-label">移库服务费（元）</div><div class="info-value">{{ detailRow.fee }} 元</div></div>
+            <div class="info-cell"><div class="info-label">支付方式</div><div class="info-value">{{ detailRow.payType }}</div></div>
+            <div class="info-cell"><div class="info-label">操作人</div><div class="info-value">{{ detailRow.operator }}</div></div>
+            <div class="info-cell"><div class="info-label">备注</div><div class="info-value">{{ detailRow.remark }}</div></div>
+            <div class="info-cell"><div class="info-label">移至车商</div><div class="info-value">{{ detailRow.movedMerchant }}</div></div>
+            <div class="info-cell"><div class="info-label">联系电话</div><div class="info-value">{{ detailRow.contactPhone }}</div></div>
+            <div class="info-cell"><div class="info-label">所在车位</div><div class="info-value">{{ detailRow.parkingSpace }}</div></div>
+          </div>
+          <div class="sec-title" style="margin-top:24px"><span class="sec-bar"></span><span>车辆信息</span></div>
+          <div class="info-grid">
+            <div class="info-cell"><div class="info-label">车型</div><div class="info-value">{{ detailRow.model }}</div></div>
+            <div class="info-cell"><div class="info-label">车架号</div><div class="info-value">车架号：{{ detailRow.vin }}</div></div>
+            <div class="info-cell"><div class="info-label">车辆类型</div><div class="info-value">{{ detailRow.vehicleType }}</div></div>
+            <div class="info-cell"><div class="info-label">车辆价格</div><div class="info-value">{{ detailRow.price }} 万元</div></div>
+          </div>
+        </div>
+      </el-drawer>
+      <button v-if="detailVisible" class="drawer-close" type="button" @click="detailVisible = false" aria-label="关闭">×</button>
+    </div>
+  </script>
+  <!-- #AI:dev:end -->
+  <!-- #AI:dev:start -->
+  <!-- ================= 模块五：商户排名统计 模板 ================= -->
+  <script type="text/x-template" id="tpl-merchant-ranking">
+    <div class="m-merchant-rank">
+      <el-card shadow="never" class="content-panel">
+        <el-tabs v-model="activeMetric" @tab-click="handleTabChange">
+          <el-tab-pane label="全部" name="all"></el-tab-pane>
+          <el-tab-pane label="入库量" name="inbound"></el-tab-pane>
+          <el-tab-pane label="周转周期" name="turnoverDays"></el-tab-pane>
+          <el-tab-pane label="出库量（过户）" name="outbound"></el-tab-pane>
+          <el-tab-pane label="出库金额" name="outboundAmount"></el-tab-pane>
+        </el-tabs>
+        <div class="filter-panel">
+          <el-form :inline="true" :model="filter" @submit.native.prevent>
+            <el-form-item label="所属市场">
+              <el-select v-model="filter.market" clearable placeholder="请选择市场">
+                <el-option v-for="m in markets" :key="m" :label="m" :value="m"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="统计时间">
+              <el-date-picker v-model="filter.dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd" />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleSearch">查询</el-button>
+              <el-button @click="handleReset">重置</el-button>
+              <el-button type="primary" @click="handleExport">查询数据导出</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+        <div v-if="activeMetric === 'all'" class="stats-panel">
+          <div class="stats-row" v-for="(row, rowIndex) in summaryRows" :key="rowIndex">
+            <div class="stat-item" v-for="item in row" :key="item.label">
+              <div class="merchant-stat-main">
+                <div class="stat-value"><span>{{ item.value }}</span><span class="stat-unit">{{ item.unit }}</span></div>
+                <div class="merchant-stat-label">{{ item.label }}</div>
+              </div>
+              <div class="merchant-stat-trends">
+                <div>环比<span :class="item.mom > 0 ? 'is-up' : item.mom < 0 ? 'is-down' : 'is-flat'">{{ formatTrend(item.mom) }}</span></div>
+                <div>同比<span :class="item.yoy > 0 ? 'is-up' : item.yoy < 0 ? 'is-down' : 'is-flat'">{{ formatTrend(item.yoy) }}</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-if="activeMetric !== 'all'" class="merchant-podium">
+          <div v-for="(row, index) in podiumRows" :key="row.id" class="podium-card" :class="'rank-' + (index + 1)">
+            <img class="podium-badge" :src="'assets/merchant-ranking/' + (index + 1) + '.png'" :alt="'第' + (index + 1) + '名'">
+            <div class="podium-info">
+              <div class="podium-name">{{ row.merchant }}</div>
+              <div class="podium-total">{{ podiumMetricValue(row) }}</div>
+              <div class="podium-split">{{ podiumMetricDetail(row) }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" :class="{ 'all-merchant-table': activeMetric === 'all', 'inbound-merchant-table': activeMetric === 'inbound' }">
+            <thead><tr>
+              <th class="col-rank">{{ activeMetric === 'all' ? '序号' : '排名' }}</th><th class="col-market">所属市场</th><th class="col-merchant">商户名称</th>
+              <template v-if="activeMetric === 'all'">
+                <th class="metric-cell">入库总数</th><th class="metric-cell">上架总数</th><th class="metric-cell">出库总数</th><th class="metric-cell">平均周转周期</th><th class="metric-cell">出库总金额</th><th class="metric-cell">平均出库金额</th>
+              </template>
+              <template v-else>
+                <th class="metric-cell" :class="{ 'active-metric': activeMetric === 'inbound' }">
+                  <button v-if="activeMetric === 'inbound'" type="button" class="sort-trigger" :aria-label="inboundSort === 'desc' ? '入库量当前从多到少，点击切换为从少到多' : '入库量当前从少到多，点击切换为从多到少'" @click="toggleInboundSort">
+                    <span>入库量</span><span class="sort-arrows" aria-hidden="true"><i class="sort-arrow sort-arrow-up" :class="{ 'is-active': inboundSort === 'asc' }"></i><i class="sort-arrow sort-arrow-down" :class="{ 'is-active': inboundSort === 'desc' }"></i></span>
+                  </button>
+                  <span v-else>入库量</span>
+                </th>
+                <th v-if="activeMetric === 'inbound'" class="metric-cell">新车</th><th v-if="activeMetric === 'inbound'" class="metric-cell">二手车</th>
+                <th class="metric-cell" :class="{ 'active-metric': activeMetric === 'turnoverDays' }">周转周期</th>
+                <th class="metric-cell" :class="{ 'active-metric': activeMetric === 'outbound' }">出库量（过户）</th>
+                <th class="metric-cell" :class="{ 'active-metric': activeMetric === 'outboundAmount' }">出库金额</th>
+                <th v-if="activeMetric === 'inbound'" class="metric-cell">出库金额（新车）</th><th v-if="activeMetric === 'inbound'" class="metric-cell">出库金额（二手车）</th>
+              </template>
+            </tr></thead>
+            <tbody><tr v-for="(row, idx) in pagedList" :key="row.id">
+              <td class="col-rank">{{ displayRank(row, idx) }}</td><td class="col-market">{{ row.market }}</td><td class="col-merchant">{{ row.merchant }}</td>
+              <template v-if="activeMetric === 'all'">
+                <td>{{ row.inbound }} 辆</td><td>{{ row.listed }} 辆</td><td>{{ row.outbound }} 辆</td><td>{{ row.turnoverDays }} 天</td><td>{{ row.outboundAmount }} 万元</td><td>{{ averageOutboundAmount(row) }} 万元</td>
+              </template>
+              <template v-else>
+                <td :class="{ 'active-metric': activeMetric === 'inbound' }">{{ row.inbound }} 辆</td>
+                <td v-if="activeMetric === 'inbound'">{{ row.newInbound }} 辆</td><td v-if="activeMetric === 'inbound'">{{ row.usedInbound }} 辆</td>
+                <td :class="{ 'active-metric': activeMetric === 'turnoverDays' }">{{ row.turnoverDays }} 天</td>
+                <td :class="{ 'active-metric': activeMetric === 'outbound' }">{{ row.outbound }} 辆</td>
+                <td :class="{ 'active-metric': activeMetric === 'outboundAmount' }">{{ row.outboundAmount }} 万元</td>
+                <td v-if="activeMetric === 'inbound'">{{ row.newOutboundAmount }} 万元</td><td v-if="activeMetric === 'inbound'">{{ row.usedOutboundAmount }} 万元</td>
+              </template>
+            </tr></tbody>
+          </table>
+        </div>
+        <div class="pagination-wrap"><el-pagination background layout="total, prev, pager, next" :current-page="currentPage" :page-size="pageSize" :total="sortedList.length" @current-change="handlePageChange" /></div>
+      </el-card>
+    </div>
+  </script>
+  <!-- #AI:dev:end -->
+  <script src="https://unpkg.com/vue@2.7.16/dist/vue.js"></script>
+  <script src="https://unpkg.com/element-ui@2.15.14/lib/index.js"></script>
+  <script>
+    // ================= 模块一：车辆检测统计（原 inspect-report.html，逻辑原样保留） =================
+    Vue.component("inspect-report", {
+      template: "#tpl-inspect-report",
+      data: function () {
+        return {
+          filter: {
+            category: "全部",
+            // #AI:dev:start
+            market: "",
+            // #AI:dev:end
+            dateRange: null
+          },
+          // #AI:dev:start
+          markets: MARKETS,
+          // #AI:dev:end
+          currentPage: 1,
+          pageSize: 10,
+          detailVisible: false,
+          detailRow: { date: "", inspectCount: 0 },
+          list: [
+            // #AI:dev:start
+            { id: 1, market: MARKETS[0], category: "入库车辆", date: "2026-08-25 09:30:00", inCount: 318, outCount: 276, inspectCount: 204 },
+            { id: 2, market: MARKETS[1], category: "出库车辆", date: "2026-08-24 10:15:00", inCount: 295, outCount: 268, inspectCount: 191 },
+            { id: 3, market: MARKETS[2], category: "入库车辆", date: "2026-08-23 11:20:00", inCount: 302, outCount: 251, inspectCount: 198 },
+            { id: 4, market: MARKETS[0], category: "出库车辆", date: "2026-08-22 13:05:00", inCount: 287, outCount: 264, inspectCount: 186 },
+            { id: 5, market: MARKETS[1], category: "入库车辆", date: "2026-08-21 14:40:00", inCount: 310, outCount: 259, inspectCount: 211 },
+            { id: 6, market: MARKETS[2], category: "出库车辆", date: "2026-08-20 15:10:00", inCount: 274, outCount: 248, inspectCount: 172 },
+            { id: 7, market: MARKETS[0], category: "入库车辆", date: "2026-08-19 16:25:00", inCount: 320, outCount: 276, inspectCount: 209 },
+            { id: 8, market: MARKETS[1], category: "出库车辆", date: "2026-08-18 09:50:00", inCount: 281, outCount: 239, inspectCount: 176 },
+            { id: 9, market: MARKETS[2], category: "入库车辆", date: "2026-08-17 10:35:00", inCount: 306, outCount: 262, inspectCount: 203 },
+            { id: 10, market: MARKETS[0], category: "出库车辆", date: "2026-08-16 11:45:00", inCount: 268, outCount: 231, inspectCount: 169 },
+            { id: 11, market: MARKETS[1], category: "入库车辆", date: "2026-08-15 12:30:00", inCount: 299, outCount: 254, inspectCount: 194 },
+            { id: 12, market: MARKETS[2], category: "出库车辆", date: "2026-08-14 13:15:00", inCount: 276, outCount: 243, inspectCount: 181 },
+            { id: 13, market: MARKETS[0], category: "入库车辆", date: "2026-08-13 14:05:00", inCount: 312, outCount: 267, inspectCount: 208 },
+            { id: 14, market: MARKETS[1], category: "出库车辆", date: "2026-08-12 15:20:00", inCount: 283, outCount: 247, inspectCount: 184 },
+            { id: 15, market: MARKETS[2], category: "入库车辆", date: "2026-08-11 16:10:00", inCount: 294, outCount: 252, inspectCount: 190 },
+            { id: 16, market: MARKETS[0], category: "出库车辆", date: "2026-08-10 09:25:00", inCount: 271, outCount: 235, inspectCount: 175 },
+            { id: 17, market: MARKETS[1], category: "入库车辆", date: "2026-08-09 10:50:00", inCount: 307, outCount: 261, inspectCount: 201 },
+            { id: 18, market: MARKETS[2], category: "出库车辆", date: "2026-08-08 11:35:00", inCount: 279, outCount: 246, inspectCount: 182 },
+            { id: 19, market: MARKETS[0], category: "入库车辆", date: "2026-08-07 12:45:00", inCount: 301, outCount: 257, inspectCount: 196 },
+            { id: 20, market: MARKETS[1], category: "出库车辆", date: "2026-08-06 13:55:00", inCount: 273, outCount: 238, inspectCount: 173 }
+            // #AI:dev:end
+          ]
+        };
+      },
+      computed: {
+        filteredList: function () {
+          var category = this.filter.category;
+          var market = this.filter.market;
+          var dateRange = this.filter.dateRange;
+          return this.list.filter(function (row) {
+            var matchCategory = category === "全部" || row.category === category;
+            var matchMarket = !market || row.market === market;
+            var rowDate = row.date.slice(0, 10);
+            var matchDate = !dateRange || (rowDate >= dateRange[0] && rowDate <= dateRange[1]);
+            return matchCategory && matchMarket && matchDate;
+          });
+        },
+        stats: function () {
+          var rows = this.filteredList;
+          var inTotal = rows.reduce(function (sum, row) { return sum + row.inCount; }, 0);
+          var outTotal = rows.reduce(function (sum, row) { return sum + row.outCount; }, 0);
+          var inspectTotal = rows.reduce(function (sum, row) { return sum + row.inspectCount; }, 0);
+          // #AI:dev:start
+          var ratio = inTotal ? (inspectTotal / inTotal * 100).toFixed(1) : "0.0";
+          var lastYearInspect = Math.round(inspectTotal * 0.82);
+          var lastMonthInspect = Math.round(inspectTotal * 0.91);
+          var yearOnYearRate = inspectTotal ? (lastYearInspect / inspectTotal * 100).toFixed(1) : "0.0";
+          var monthOnMonthRate = inspectTotal ? (lastMonthInspect / inspectTotal * 100).toFixed(1) : "0.0";
+          var yoyRange = this.getYearOnYearDate();
+          var momRange = this.getMonthOnMonthDate();
+          return [
+            { label: "入库数量", value: inTotal, unit: "辆" },
+            { label: "出库数量", value: outTotal, unit: "辆" },
+            { label: "入库检测数量", value: inspectTotal, unit: "辆" },
+            { label: "检测车辆占比", value: ratio + "%" },
+            { label: "检测量同比", value: lastYearInspect, unit: "辆", date: yoyRange },
+            { label: "检测量同比增幅", value: yearOnYearRate + "%", date: yoyRange },
+            { label: "检测量环比", value: lastMonthInspect, unit: "辆", date: momRange },
+            { label: "检测量环比增幅", value: monthOnMonthRate + "%", date: momRange }
+          ];
+          // #AI:dev:end
+        },
+        statRows: function () {
+          return [this.stats.slice(0, 4), this.stats.slice(4, 8)];
+        },
+        pagedList: function () {
+          var start = (this.currentPage - 1) * this.pageSize;
+          return this.filteredList.slice(start, start + this.pageSize);
+        },
+        detailSummary: function () {
+          var total = this.detailRow.inspectCount || 0;
+          var failed = total ? Math.max(1, Math.round(total * 0.07)) : 0;
+          var passed = total - failed;
+          return { total: total, passed: passed, failed: failed, failedRate: total ? (failed / total * 100).toFixed(2) : "0.00" };
+        },
+        detailPassRate: function () {
+          return this.detailSummary.total ? (this.detailSummary.passed / this.detailSummary.total * 100).toFixed(2) : 0;
+        },
+        detailItems: function () {
+          var date = (this.detailRow.date || "2026-08-25").slice(0, 10);
+          return [
+            { model: "特斯拉 Model 3", vin: "LRW3E7FS5NC535814", inspectTime: date + " 09:25:30", result: "铂和新能源车检初检 / 检测通过" },
+            { model: "极氪 007", vin: "L6T79MENXRN043620", inspectTime: date + " 10:15:18", result: "铂和新能源车检初检 / 检测通过" },
+            { model: "奔驰 EQB", vin: "LE49M0CB3NL030232", inspectTime: date + " 11:08:25", result: "豪车检 / 检测通过" },
+            { model: "保时捷 Panamera", vin: "WPOAJ2976LL123964", inspectTime: date + " 13:19:51", result: "豪车检 / 检测未通过" },
+            { model: "问界 M5", vin: "LSJWX4390SS067839", inspectTime: date + " 15:41:39", result: "铂和新能源车检初检 / 检测通过" },
+            { model: "宝马 X3", vin: "LBV6B3108MS945671", inspectTime: date + " 17:06:14", result: "豪车检 / 检测通过" }
+          ];
+        }
+      },
+      methods: {
+        handleSearch: function () {
+          this.currentPage = 1;
+        },
+        handleReset: function () {
+          this.filter.category = "全部";
+          this.filter.market = "";
+          this.filter.dateRange = null;
+          this.currentPage = 1;
+        },
+        handleExport: function () {
+          // #AI:dev:start
+          var header = ["日期", "所属市场", "入库数量", "出库数量", "入库检测数量"];
+          var lines = [header.join(",")];
+          this.filteredList.forEach(function (row) {
+            lines.push([row.date, row.market, row.inCount, row.outCount, row.inspectCount].join(","));
+          });
+          var blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+          var link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = "车辆检测统计.csv";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(link.href);
+          // #AI:dev:end
+        },
+        openDetail: function (row) {
+          this.detailRow = row;
+          this.detailVisible = true;
+        },
+        handlePageChange: function (page) {
+          this.currentPage = page;
+        },
+        formatDate: function (date) {
+          var year = date.getFullYear();
+          var month = String(date.getMonth() + 1).padStart(2, "0");
+          var day = String(date.getDate()).padStart(2, "0");
+          return year + "-" + month + "-" + day;
+        },
+        getYearOnYearDate: function () {
+          // #AI:dev:start
+          var now = new Date();
+          var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          return this.formatDate(monthStart) + " 至 " + this.formatDate(now);
+          // #AI:dev:end
+        },
+        getMonthOnMonthDate: function () {
+          // #AI:dev:start
+          var now = new Date();
+          var lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          var lastMonthToday = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+          return this.formatDate(lastMonthStart) + " 至 " + this.formatDate(lastMonthToday);
+          // #AI:dev:end
+        }
+      }
+    });
+
+    // ================= 模块二：换证车辆明细统计（原 plate-change-report.html，逻辑原样保留） =================
+    // #AI:preview:start（以下数据均为预览假数据，不作为统计口径或验收数值）
+    function mulberry32(a) {
+      return function () {
+        a |= 0; a = (a + 0x6D2B79F5) | 0;
+        var t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    var rnd = mulberry32(20260904);
+    var MARKETS = ["北京市旧机动车交易市场有限公司", "花乡二手车交易中心", "花乡汽博中心"];
+    var OPERATORS = ["李亚男", "王建国", "赵敏", "陈立"];
+    var AGENTS = ["张伟", "刘洋", "孙倩", "周鹏"];
+    var PAY_TYPES = ["扫码支付", "2SC账户支付"];
+    var MODELS_NEW = ["奔驰E级 2024款 E 300 L 尊贵型", "宝马X3 2024款 xDrive30i", "理想L7 2025款 Pro", "奥迪A6L 2025款 45 TFSI"];
+    var MODELS_USED = ["大众帕萨特 2019款 330TSI", "丰田凯美瑞 2018款 2.0G", "本田雅阁 2020款 260TURBO", "日产轩逸 2021款 1.6XL"];
+    var SOURCES = ["普通换证", "指标腾出换证"];
+    var VTYPES = ["新车", "二手车"];
+
+    function randVin() {
+      var head = ["LE4LG4GB", "LBV6B310", "LSJWX439", "L6T79MEN", "LRW3E7FS"];
+      var s = head[Math.floor(rnd() * head.length)];
+      for (var i = 0; i < 10; i++) s += Math.floor(rnd() * 10);
+      return s;
+    }
+    function randPlate() {
+      var n = "ABCDEFGHJKLNMPQRSTUVWXY";
+      return "京" + n[Math.floor(rnd() * n.length)] + String(10000 + Math.floor(rnd() * 89999));
+    }
+    function fmtDate(d) {
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
+    // #AI:dev:start
+    function currentMonthRange() {
+      var now = new Date();
+      return [fmtDate(new Date(now.getFullYear(), now.getMonth(), 1)), fmtDate(now)];
+    }
+    // #AI:dev:end
+    // #AI:dev:merchant-ranking:start
+    function rankMerchantRows(rows, dimension, order) {
+      if (dimension === "all") return rows.slice();
+      var direction = order ? (order === "asc" ? 1 : -1) : dimension === "turnoverDays" ? 1 : -1;
+      return rows.slice().sort(function (a, b) { return (a[dimension] - b[dimension]) * direction; });
+    }
+    function merchantPodiumRows(rows) {
+      return rows.slice(0, 3);
+    }
+    function summarizeMerchantRows(rows) {
+      var totals = rows.reduce(function (sum, row) {
+        sum.inbound += row.inbound;
+        sum.listed += row.listed;
+        sum.outbound += row.outbound;
+        sum.outboundAmount += row.outboundAmount;
+        sum.turnoverDays += row.turnoverDays * row.outbound;
+        return sum;
+      }, { inbound: 0, listed: 0, outbound: 0, outboundAmount: 0, turnoverDays: 0 });
+      return {
+        merchantCount: rows.length,
+        inbound: totals.inbound,
+        listed: totals.listed,
+        outbound: totals.outbound,
+        outboundAmount: Number(totals.outboundAmount.toFixed(1)),
+        averageTurnoverDays: totals.outbound ? Number((totals.turnoverDays / totals.outbound).toFixed(1)) : 0,
+        averageOutboundAmount: totals.outbound ? Number((totals.outboundAmount / totals.outbound).toFixed(1)) : 0
+      };
+    }
+    function formatMerchantTrend(value) {
+      return (value > 0 ? "↑ " : value < 0 ? "↓ " : "— ") + value.toFixed(2) + "%";
+    }
+    function averageMerchantOutboundAmount(row) {
+      return row.outbound ? Number((row.outboundAmount / row.outbound).toFixed(1)) : 0;
+    }
+    function splitMerchantMetric(total, ratio, decimals) {
+      var factor = Math.pow(10, decimals);
+      var first = Math.round(total * ratio * factor) / factor;
+      return { first: first, second: Math.round((total - first) * factor) / factor };
+    }
+    // #AI:dev:merchant-ranking:end
+    function buildRecords(n) {
+      var list = [];
+      var base = new Date(2026, 8, 4);
+      for (var i = 0; i < n; i++) {
+        var d = new Date(base.getTime() - i * 86400000 - Math.floor(rnd() * 43200000));
+        var subs = [];
+        SOURCES.forEach(function (src) {
+          VTYPES.forEach(function (vt) {
+            var qty = 1 + Math.floor(rnd() * 5);
+            subs.push({ source: src, vtype: vt, qty: qty });
+          });
+        });
+        var total = subs.reduce(function (s, x) { return s + x.qty; }, 0);
+        var reg = Math.round(total * (0.3 + rnd() * 0.2));
+        list.push({
+          id: i + 1,
+          market: MARKETS[Math.floor(rnd() * MARKETS.length)],
+          date: fmtDate(d) + " " + ("0" + (9 + i % 9)).slice(-2) + ":30:00",
+          operator: OPERATORS[Math.floor(rnd() * OPERATORS.length)],
+          payType: PAY_TYPES[rnd() < 0.7 ? 0 : 1],
+          subs: subs,
+          total: total,
+          reg: reg,
+          driving: total - reg
+        });
+      }
+      return list;
+    }
+    // #AI:preview:end
+
+    Vue.component("plate-change", {
+      template: "#tpl-plate-change",
+      data: function () {
+        return {
+          markets: MARKETS,
+          operators: OPERATORS,
+          changeSources: ["普通换证", "指标腾出换证"],
+          vehicleTypes: ["新车", "二手车"],
+          filter: {
+            market: "",
+            operator: "",
+            dateRange: null,
+            changeSource: "全部",
+            vehicleType: "全部"
+          },
+          currentPage: 1,
+          pageSize: 10,
+          detailVisible: false,
+          detailRec: null,
+          detailSub: null,
+          list: buildRecords(20)
+        };
+      },
+      computed: {
+        filteredList: function () {
+          var f = this.filter;
+          return this.list.filter(function (row) {
+            if (f.market && row.market !== f.market) return false;
+            if (f.operator && row.operator !== f.operator) return false;
+            var rowDate = row.date.slice(0, 10);
+            if (f.dateRange && !(rowDate >= f.dateRange[0] && rowDate <= f.dateRange[1])) return false;
+            if (f.changeSource !== "全部" && !row.subs.some(function (sub) { return sub.source === f.changeSource; })) return false;
+            if (f.vehicleType !== "全部" && !row.subs.some(function (sub) { return sub.vtype === f.vehicleType; })) return false;
+            return true;
+          });
+        },
+        stats: function () {
+          var rows = this.filteredList;
+          var self = this;
+          var summary = rows.reduce(function (result, row) {
+            self.filteredSubs(row).forEach(function (sub) {
+              var key = sub.source === "普通换证" ? "regular" : "indicator";
+              result.total += sub.qty;
+              result[key] += sub.qty;
+              result[key + (sub.vtype === "新车" ? "New" : "Used")] += sub.qty;
+            });
+            return result;
+          }, { total: 0, regular: 0, indicator: 0, regularNew: 0, indicatorNew: 0, regularUsed: 0, indicatorUsed: 0 });
+          return [
+            { label: "换证车辆", value: summary.total, unit: "辆" },
+            { label: "普通换证车辆", value: summary.regular, unit: "辆" },
+            { label: "指标腾出换证车辆", value: summary.indicator, unit: "辆" },
+            { label: "普通换证车辆（新车）", value: summary.regularNew, unit: "辆" },
+            { label: "指标腾出换证车辆（新车）", value: summary.indicatorNew, unit: "辆" },
+            { label: "普通换证车辆（二手车）", value: summary.regularUsed, unit: "辆" },
+            { label: "指标腾出换证车辆（二手车）", value: summary.indicatorUsed, unit: "辆" },
+            { label: "换证车辆服务费", value: summary.total * 10, unit: "元" }
+          ];
+        },
+        statRows: function () {
+          var stats = this.stats;
+          return [
+            [stats[0], stats[1], stats[3], stats[5]],
+            [stats[2], stats[4], stats[6], stats[7]]
+          ];
+        },
+        pagedList: function () {
+          var start = (this.currentPage - 1) * this.pageSize;
+          return this.filteredList.slice(start, start + this.pageSize);
+        },
+        totals: function () {
+          var rows = this.filteredList;
+          var self = this;
+          var allTotal = rows.reduce(function (s, r) {
+            return s + self.filteredSubs(r).reduce(function (subTotal, sub) { return subTotal + sub.qty; }, 0);
+          }, 0);
+          return { allTotal: allTotal, allQty: allTotal, allFee: allTotal * 10 };
+        },
+        // #AI:preview:start
+        detailVehicles: function () {
+          if (!this.detailRec || !this.detailSub) return [];
+          var rec = this.detailRec;
+          var sub = this.detailSub;
+          var out = [];
+          var remainDriving = rec.driving;
+          var remainReg = rec.reg;
+          for (var i = 0; i < sub.qty; i++) {
+              var cert;
+              if (remainDriving > 0 && (remainReg === 0 || rnd() < 0.5)) { cert = "行驶证证"; remainDriving--; }
+              else { cert = "登记证"; remainReg--; }
+              var isNew = sub.vtype === "新车";
+              out.push({
+                plate: randPlate(),
+                vin: randVin(),
+                model: isNew ? MODELS_NEW[Math.floor(rnd() * MODELS_NEW.length)] : MODELS_USED[Math.floor(rnd() * MODELS_USED.length)],
+                source: sub.source,
+                vtype: sub.vtype,
+                cert: cert,
+                price: (8 + Math.floor(rnd() * 42)) + "." + Math.floor(rnd() * 10),
+                payType: rec.payType,
+                agent: AGENTS[Math.floor(rnd() * AGENTS.length)],
+                remark: rnd() < 0.25 ? "客户备注示例" : "—",
+                date: rec.date
+              });
+          }
+          return out;
+        },
+        detailPersonText: function () {
+          var people = [];
+          this.detailVehicles.forEach(function (vehicle) {
+            if (people.indexOf(vehicle.agent) === -1) people.push(vehicle.agent);
+          });
+          return people.length ? people.join("、") : (this.detailRec ? this.detailRec.operator : "");
+        }
+        // #AI:preview:end
+      },
+      methods: {
+        filteredSubs: function (rec) {
+          var f = this.filter;
+          return rec.subs.filter(function (sub) {
+            return (f.changeSource === "全部" || sub.source === f.changeSource) &&
+              (f.vehicleType === "全部" || sub.vtype === f.vehicleType);
+          });
+        },
+        rowSequence: function (idx, si) {
+          var end = (this.currentPage - 1) * this.pageSize + idx;
+          var count = 0;
+          for (var i = 0; i < end; i++) count += this.filteredSubs(this.filteredList[i]).length;
+          return count + si + 1;
+        },
+        handleSearch: function () {
+          this.currentPage = 1;
+        },
+        handleReset: function () {
+          this.filter = { market: "", operator: "", dateRange: null, changeSource: "全部", vehicleType: "全部" };
+          this.currentPage = 1;
+        },
+        handleExport: function () {
+          var header = ["序号", "所属市场", "换证车辆日期", "操作人员", "换证车辆总数", "换证车辆来源", "车辆类型", "数量", "换证车辆服务费（元）"];
+          var rows = [header];
+          var seq = 0;
+          this.filteredList.forEach(function (rec) {
+            seq++;
+            this.filteredSubs(rec).forEach(function (sub) {
+              rows.push([seq, rec.market, rec.date, rec.operator, rec.total, sub.source, sub.vtype, sub.qty, sub.qty * 10]);
+            });
+          }, this);
+          // 导出 xlsx，不含合计行（已确认）
+          if (window.XLSX) {
+            var ws = XLSX.utils.aoa_to_sheet(rows);
+            var wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "换证车辆明细统计");
+            XLSX.writeFile(wb, "换证车辆明细统计.xlsx");
+          } else {
+            this.$message.error("Excel 组件加载失败，请检查网络后重试");
+          }
+        },
+        openDetail: function (rec, sub) {
+          this.detailRec = rec;
+          this.detailSub = sub;
+          this.detailVisible = true;
+        },
+        handlePageChange: function (page) {
+          this.currentPage = page;
+        }
+      }
+    });
+
+    Vue.component("reprint-label", {
+      template: "#tpl-reprint-label",
+      data: function () {
+        var merchants = ["鑫源车商", "华盛车商", "悦达车商"];
+        var list = [];
+        for (var i = 0; i < 20; i++) {
+          var vehicleType = i % 2 === 0 ? "新车" : "二手车";
+          list.push({
+            id: i + 1,
+            market: MARKETS[i % MARKETS.length],
+            merchant: merchants[i % merchants.length],
+            model: (vehicleType === "新车" ? MODELS_NEW : MODELS_USED)[i % 4],
+            vin: randVin(),
+            vehicleType: vehicleType,
+            price: 8 + (i % 8) * 2.5,
+            amount: 10 + (i % 3) * 5,
+            payType: i % 2 === 0 ? "扫码支付" : "2SC账户支付",
+            operator: OPERATORS[i % OPERATORS.length],
+            date: fmtDate(new Date(2026, 8, 4 - i)) + " " + ("0" + (9 + i % 9)).slice(-2) + ":30:00",
+            manager: ["王强", "陈芳", "刘凯"][i % 3],
+            managerPhone: "1380000" + String(1000 + i),
+            operatorPhone: "1390000" + String(2000 + i),
+            remark: i % 3 === 0 ? "客户补打价签" : "—"
+          });
+        }
+        return {
+          markets: MARKETS,
+          merchants: merchants,
+          operators: OPERATORS,
+          vehicleTypes: ["新车", "二手车"],
+          payTypes: ["2SC账户支付", "扫码支付"],
+          filter: { market: "", merchant: "", vehicleType: "全部", payType: "全部", operator: "" },
+          currentPage: 1,
+          pageSize: 10,
+          detailVisible: false,
+          detailRow: null,
+          list: list
+        };
+      },
+      computed: {
+        filteredList: function () {
+          var f = this.filter;
+          return this.list.filter(function (row) {
+            return (!f.market || row.market === f.market) &&
+              (!f.merchant || row.merchant === f.merchant) &&
+              (f.vehicleType === "全部" || row.vehicleType === f.vehicleType) &&
+              (f.payType === "全部" || row.payType === f.payType) &&
+              (!f.operator || row.operator === f.operator);
+          });
+        },
+        stats: function () {
+          var rows = this.filteredList;
+          var total = rows.length;
+          var newCount = rows.filter(function (row) { return row.vehicleType === "新车"; }).length;
+          var usedCount = rows.filter(function (row) { return row.vehicleType === "二手车"; }).length;
+          var amount = rows.reduce(function (sum, row) { return sum + row.amount; }, 0);
+          return [
+            { label: "补打车辆", value: total, unit: "辆" },
+            { label: "补打车辆（新车）", value: newCount, unit: "辆" },
+            { label: "补打车辆（二手车）", value: usedCount, unit: "辆" },
+            { label: "补打金额", value: amount, unit: "元" }
+          ];
+        },
+        pagedList: function () {
+          var start = (this.currentPage - 1) * this.pageSize;
+          return this.filteredList.slice(start, start + this.pageSize);
+        }
+      },
+      methods: {
+        handleSearch: function () { this.currentPage = 1; },
+        handleReset: function () {
+          this.filter = { market: "", merchant: "", vehicleType: "全部", payType: "全部", operator: "" };
+          this.currentPage = 1;
+        },
+        handleExport: function () {
+          var rows = [["序号", "所属市场", "补打价签日期", "车商名称", "车型", "车架号", "车辆类型", "车辆价格", "补打金额", "支付方式", "经办人"]];
+          this.filteredList.forEach(function (row, index) {
+            rows.push([index + 1, row.market, row.date, row.merchant, row.model, row.vin, row.vehicleType, row.price, row.amount, row.payType, row.operator]);
+          });
+          var ws = XLSX.utils.aoa_to_sheet(rows);
+          var wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "补打价签车辆明细统计");
+          XLSX.writeFile(wb, "补打价签车辆明细统计.xlsx");
+        },
+        openDetail: function (row) {
+          this.detailRow = row;
+          this.detailVisible = true;
+        },
+        handlePageChange: function (page) { this.currentPage = page; }
+      }
+    });
+
+    // #AI:dev:start
+    Vue.component("storage-transfer", {
+      template: "#tpl-storage-transfer",
+      data: function () {
+        var merchants = ["鑫源车商", "华盛车商", "悦达车商"];
+        var list = [];
+        for (var i = 0; i < 20; i++) {
+          var vehicleType = i % 2 === 0 ? "新车" : "二手车";
+          list.push({
+            id: i + 1,
+            market: MARKETS[i % MARKETS.length],
+            date: fmtDate(new Date(2026, 8, 4 - i)) + " " + ("0" + (9 + i % 9)).slice(-2) + ":30:00",
+            merchant: merchants[i % merchants.length],
+            model: (vehicleType === "新车" ? MODELS_NEW : MODELS_USED)[i % 4],
+            vin: randVin(),
+            vehicleType: vehicleType,
+            price: 8 + (i % 8) * 2.5,
+            fee: 20 + (i % 3) * 10,
+            payType: i % 2 === 0 ? "扫码支付" : "2SC账户支付",
+            operator: OPERATORS[i % OPERATORS.length],
+            remark: i % 3 === 0 ? "车辆移库" : "—",
+            movedMerchant: merchants[(i + 1) % merchants.length],
+            contactPhone: "1380000" + String(3000 + i),
+            parkingSpace: ["A区-01-" + String(101 + i), "B区-02-" + String(201 + i), "C区-03-" + String(301 + i)][i % 3]
+          });
+        }
+        return {
+          markets: MARKETS,
+          merchants: merchants,
+          operators: OPERATORS,
+          vehicleTypes: ["新车", "二手车"],
+          payTypes: ["2SC账户支付", "扫码支付"],
+          filter: { market: "", merchant: "", vehicleType: "全部", payType: "全部", operator: "" },
+          currentPage: 1,
+          pageSize: 10,
+          detailVisible: false,
+          detailRow: null,
+          list: list
+        };
+      },
+      computed: {
+        filteredList: function () {
+          var f = this.filter;
+          return this.list.filter(function (row) {
+            return (!f.market || row.market === f.market) &&
+              (!f.merchant || row.merchant === f.merchant) &&
+              (f.vehicleType === "全部" || row.vehicleType === f.vehicleType) &&
+              (f.payType === "全部" || row.payType === f.payType) &&
+              (!f.operator || row.operator === f.operator);
+          });
+        },
+        stats: function () {
+          var rows = this.filteredList;
+          return [
+            { label: "移库车辆", value: rows.length, unit: "辆" },
+            { label: "移库车辆（新车）", value: rows.filter(function (row) { return row.vehicleType === "新车"; }).length, unit: "辆" },
+            { label: "移库车辆（二手车）", value: rows.filter(function (row) { return row.vehicleType === "二手车"; }).length, unit: "辆" },
+            { label: "移库服务费", value: rows.reduce(function (sum, row) { return sum + row.fee; }, 0), unit: "元" }
+          ];
+        },
+        pagedList: function () {
+          var start = (this.currentPage - 1) * this.pageSize;
+          return this.filteredList.slice(start, start + this.pageSize);
+        }
+      },
+      methods: {
+        handleSearch: function () { this.currentPage = 1; },
+        handleReset: function () {
+          this.filter = { market: "", merchant: "", vehicleType: "全部", payType: "全部", operator: "" };
+          this.currentPage = 1;
+        },
+        handleExport: function () {
+          var rows = [["序号", "所属市场", "车辆移库时间", "车商名称", "车型", "车架号", "车辆类型", "车辆价格", "移库服务费（元）", "支付方式", "操作人"]];
+          this.filteredList.forEach(function (row, index) {
+            rows.push([index + 1, row.market, row.date, row.merchant, row.model, row.vin, row.vehicleType, row.price, row.fee, row.payType, row.operator]);
+          });
+          var ws = XLSX.utils.aoa_to_sheet(rows);
+          var wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "移库车辆明细统计");
+          XLSX.writeFile(wb, "移库车辆明细统计.xlsx");
+        },
+        openDetail: function (row) {
+          this.detailRow = row;
+          this.detailVisible = true;
+        },
+        handlePageChange: function (page) { this.currentPage = page; }
+      }
+    });
+    // #AI:dev:end
+
+    // #AI:dev:start
+    Vue.component("merchant-ranking", {
+      template: "#tpl-merchant-ranking",
+      data: function () {
+        var names = ["鑫源车商", "华盛车商", "悦达车商", "京南名车", "合众汽车", "恒信车行", "中联汽车", "汇鑫车业", "嘉盛名车", "宏达车行", "瑞驰汽车", "顺通车业"];
+        var inbound = [386, 352, 415, 298, 334, 276, 401, 365, 243, 319, 287, 372];
+        var turnover = [18.6, 22.3, 15.8, 31.2, 24.7, 28.5, 17.4, 20.1, 35.6, 26.8, 29.3, 19.5];
+        var outbound = [302, 286, 348, 221, 267, 205, 331, 294, 186, 248, 217, 309];
+        var amount = [1280.6, 1168.4, 1452.8, 896.5, 1056.2, 782.9, 1378.3, 1211.7, 698.4, 974.6, 835.2, 1304.9];
+        return {
+          markets: MARKETS,
+          filter: { market: "", dateRange: currentMonthRange() },
+          activeMetric: "all",
+          inboundSort: "desc",
+          currentPage: 1,
+          pageSize: 10,
+          list: names.map(function (name, i) {
+            var inboundSplit = splitMerchantMetric(inbound[i], 0.45 + (i % 3) * 0.05, 0);
+            var amountSplit = splitMerchantMetric(amount[i], 0.5 + (i % 3) * 0.05, 1);
+            return { id: i + 1, market: MARKETS[i % MARKETS.length], merchant: name, inbound: inbound[i], newInbound: inboundSplit.first, usedInbound: inboundSplit.second, listed: Math.round(inbound[i] * 0.86), turnoverDays: turnover[i], outbound: outbound[i], outboundAmount: amount[i], newOutboundAmount: amountSplit.first, usedOutboundAmount: amountSplit.second };
+          })
+        };
+      },
+      computed: {
+        sortedList: function () {
+          var market = this.filter.market;
+          var rows = this.list.filter(function (row) { return !market || row.market === market; });
+          return rankMerchantRows(rows, this.activeMetric, this.activeMetric === "inbound" ? this.inboundSort : null);
+        },
+        pagedList: function () {
+          var start = (this.currentPage - 1) * this.pageSize;
+          return this.sortedList.slice(start, start + this.pageSize);
+        },
+        summaryRows: function () {
+          var summary = summarizeMerchantRows(this.sortedList);
+          var stats = [
+            { label: "车商总数", value: summary.merchantCount, unit: "家", mom: 1.32, yoy: 24.19 },
+            { label: "入库总数", value: summary.inbound, unit: "辆", mom: 11.28, yoy: 1.37 },
+            { label: "上架总数", value: summary.listed, unit: "辆", mom: 17.58, yoy: 6.29 },
+            { label: "出库总数", value: summary.outbound, unit: "辆", mom: -9.58, yoy: 6.32 },
+            { label: "平均周转周期", value: summary.averageTurnoverDays, unit: "天", mom: -2.45, yoy: -8.61 },
+            { label: "出库总金额", value: summary.outboundAmount, unit: "万元", mom: 19.05, yoy: -53.61 },
+            { label: "平均出库金额", value: summary.averageOutboundAmount, unit: "万元", mom: -11.89, yoy: -40.30 }
+          ];
+          return [stats.slice(0, 4), stats.slice(4)];
+        },
+        podiumRows: function () {
+          return merchantPodiumRows(rankMerchantRows(this.sortedList, this.activeMetric));
+        }
+      },
+      methods: {
+        handleSearch: function () { this.currentPage = 1; },
+        handleReset: function () {
+          this.filter = { market: "", dateRange: currentMonthRange() };
+          this.activeMetric = "all";
+          this.inboundSort = "desc";
+          this.currentPage = 1;
+        },
+        handleTabChange: function () { this.currentPage = 1; },
+        toggleInboundSort: function () {
+          this.inboundSort = this.inboundSort === "desc" ? "asc" : "desc";
+          this.currentPage = 1;
+        },
+        podiumMetricValue: function (row) {
+          if (this.activeMetric === "turnoverDays") return row.turnoverDays + " 天";
+          if (this.activeMetric === "outbound") return row.outbound + " 辆";
+          if (this.activeMetric === "outboundAmount") return row.outboundAmount + " 万元";
+          return row.inbound + " 辆";
+        },
+        podiumMetricDetail: function (row) {
+          if (this.activeMetric === "inbound") return "新车 " + row.newInbound + " 辆 · 二手车 " + row.usedInbound + " 辆";
+          if (this.activeMetric === "outbound") return "出库金额 " + row.outboundAmount + " 万元";
+          return "出库量（过户） " + row.outbound + " 辆";
+        },
+        displayRank: function (row, index) {
+          if (this.activeMetric !== "inbound") return (this.currentPage - 1) * this.pageSize + index + 1;
+          return rankMerchantRows(this.sortedList, "inbound", "desc").findIndex(function (item) { return item.id === row.id; }) + 1;
+        },
+        formatTrend: formatMerchantTrend,
+        averageOutboundAmount: averageMerchantOutboundAmount,
+        handleExport: function () {
+          var isAll = this.activeMetric === "all";
+          var isInbound = this.activeMetric === "inbound";
+          var inboundDescending = isInbound ? rankMerchantRows(this.sortedList, "inbound", "desc") : [];
+          var rows = [isAll
+            ? ["序号", "所属市场", "商户名称", "入库总数", "上架总数", "出库总数", "平均周转周期（天）", "出库总金额（万元）", "平均出库金额（万元）"]
+            : isInbound
+              ? ["排名", "所属市场", "商户名称", "入库量", "新车", "二手车", "周转周期（天）", "出库量（过户）", "出库金额（万元）", "出库金额（新车）（万元）", "出库金额（二手车）（万元）"]
+              : ["排名", "所属市场", "商户名称", "入库量", "周转周期（天）", "出库量（过户）", "出库金额（万元）"]];
+          this.sortedList.forEach(function (row, index) {
+            var rank = isInbound ? inboundDescending.findIndex(function (item) { return item.id === row.id; }) + 1 : index + 1;
+            rows.push(isAll
+              ? [index + 1, row.market, row.merchant, row.inbound, row.listed, row.outbound, row.turnoverDays, row.outboundAmount, averageMerchantOutboundAmount(row)]
+              : isInbound
+                ? [rank, row.market, row.merchant, row.inbound, row.newInbound, row.usedInbound, row.turnoverDays, row.outbound, row.outboundAmount, row.newOutboundAmount, row.usedOutboundAmount]
+                : [index + 1, row.market, row.merchant, row.inbound, row.turnoverDays, row.outbound, row.outboundAmount]);
+          });
+          var ws = XLSX.utils.aoa_to_sheet(rows);
+          var wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "商户排名统计");
+          XLSX.writeFile(wb, "商户排名统计.xlsx");
+        },
+        handlePageChange: function (page) { this.currentPage = page; }
+      }
+    });
+    // #AI:dev:end
+
+    // ================= 根应用：系统壳 + 菜单切换五个报表模块 =================
+    new Vue({
+      el: "#app",
+      data: function () {
+        return {
+          // 默认显示车辆检测统计
+          activeModule: "inspect-report"
+        };
+      },
+      methods: {
+        handleMenuSelect: function (index) {
+          this.activeModule = index;
+        }
+      }
+    });
+  </script>
+</body>
+</html>
