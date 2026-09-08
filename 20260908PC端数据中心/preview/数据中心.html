@@ -439,6 +439,8 @@
     .m-merchant-rank .el-tabs__header { margin: 0; background: #fff; border: 1px solid var(--divider); }
     .m-merchant-rank .el-tabs__nav-wrap::after { display: none; }
     .m-merchant-rank .el-tabs__item { min-width: 140px; height: 40px; padding: 0 28px; line-height: 40px; text-align: center; border-right: 1px solid var(--divider); }
+    .m-merchant-rank .el-tabs__item.is-top:nth-child(2),
+    .m-merchant-rank .el-tabs__item.is-top:last-child { padding: 0 28px; }
     .m-merchant-rank .el-tabs__item,
     .m-merchant-rank .el-tabs__item.is-active,
     .m-merchant-rank .el-tabs__item:hover { color: #1f2329; }
@@ -446,9 +448,13 @@
     .m-merchant-rank .el-tabs__active-bar { display: none; }
     .m-merchant-rank .el-tabs__content { display: none; }
     .m-merchant-rank .filter-panel { margin-top: 0; }
+    .m-merchant-rank .merchant-search-input { width: 200px; }
     .m-merchant-rank .data-table { min-width: 980px; }
     .m-merchant-rank .data-table.all-merchant-table { min-width: 1280px; }
     .m-merchant-rank .data-table.inbound-merchant-table { min-width: 1500px; }
+    .m-merchant-rank .data-table.turnover-merchant-table,
+    .m-merchant-rank .data-table.outbound-merchant-table,
+    .m-merchant-rank .data-table.amount-merchant-table { min-width: 1280px; }
     .m-merchant-rank .col-rank { width: 72px; text-align: center; }
     .m-merchant-rank .col-market { width: 250px; white-space: nowrap; }
     .m-merchant-rank .col-merchant { width: 180px; }
@@ -1032,6 +1038,9 @@
                 <el-option v-for="m in markets" :key="m" :label="m" :value="m"></el-option>
               </el-select>
             </el-form-item>
+            <el-form-item label="商户">
+              <el-input v-model.trim="filter.merchant" clearable class="merchant-search-input" placeholder="请输入商户名称"></el-input>
+            </el-form-item>
             <el-form-item label="统计时间">
               <el-date-picker v-model="filter.dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd" />
             </el-form-item>
@@ -1067,7 +1076,7 @@
           </div>
         </div>
         <div class="table-wrap">
-          <table class="data-table" :class="{ 'all-merchant-table': activeMetric === 'all', 'inbound-merchant-table': activeMetric === 'inbound' }">
+          <table class="data-table" :class="{ 'all-merchant-table': activeMetric === 'all', 'inbound-merchant-table': activeMetric === 'inbound', 'turnover-merchant-table': activeMetric === 'turnoverDays', 'outbound-merchant-table': activeMetric === 'outbound', 'amount-merchant-table': activeMetric === 'outboundAmount' }">
             <thead><tr>
               <th class="col-rank">{{ activeMetric === 'all' ? '序号' : '排名' }}</th><th class="col-market">所属市场</th><th class="col-merchant">商户名称</th>
               <template v-if="activeMetric === 'all'">
@@ -1075,16 +1084,27 @@
               </template>
               <template v-else>
                 <th class="metric-cell" :class="{ 'active-metric': activeMetric === 'inbound' }">
-                  <button v-if="activeMetric === 'inbound'" type="button" class="sort-trigger" :aria-label="inboundSort === 'desc' ? '入库量当前从多到少，点击切换为从少到多' : '入库量当前从少到多，点击切换为从多到少'" @click="toggleInboundSort">
-                    <span>入库量</span><span class="sort-arrows" aria-hidden="true"><i class="sort-arrow sort-arrow-up" :class="{ 'is-active': inboundSort === 'asc' }"></i><i class="sort-arrow sort-arrow-down" :class="{ 'is-active': inboundSort === 'desc' }"></i></span>
+                  <button v-if="activeMetric === 'inbound'" type="button" class="sort-trigger" :aria-label="sortAriaLabel('入库量')" @click="toggleMetricSort">
+                    <span>入库量</span><span class="sort-arrows" aria-hidden="true"><i class="sort-arrow sort-arrow-up" :class="{ 'is-active': metricSortOrder === 'asc' }"></i><i class="sort-arrow sort-arrow-down" :class="{ 'is-active': metricSortOrder === 'desc' }"></i></span>
                   </button>
                   <span v-else>入库量</span>
                 </th>
                 <th v-if="activeMetric === 'inbound'" class="metric-cell">新车</th><th v-if="activeMetric === 'inbound'" class="metric-cell">二手车</th>
-                <th class="metric-cell" :class="{ 'active-metric': activeMetric === 'turnoverDays' }">周转周期</th>
-                <th class="metric-cell" :class="{ 'active-metric': activeMetric === 'outbound' }">出库量（过户）</th>
-                <th class="metric-cell" :class="{ 'active-metric': activeMetric === 'outboundAmount' }">出库金额</th>
-                <th v-if="activeMetric === 'inbound'" class="metric-cell">出库金额（新车）</th><th v-if="activeMetric === 'inbound'" class="metric-cell">出库金额（二手车）</th>
+                <th class="metric-cell" :class="{ 'active-metric': activeMetric === 'turnoverDays' }">
+                  <button v-if="activeMetric === 'turnoverDays'" type="button" class="sort-trigger" :aria-label="sortAriaLabel('周转周期')" @click="toggleMetricSort"><span>周转周期</span><span class="sort-arrows" aria-hidden="true"><i class="sort-arrow sort-arrow-up" :class="{ 'is-active': metricSortOrder === 'asc' }"></i><i class="sort-arrow sort-arrow-down" :class="{ 'is-active': metricSortOrder === 'desc' }"></i></span></button>
+                  <span v-else>周转周期</span>
+                </th>
+                <th v-if="activeMetric === 'turnoverDays'" class="metric-cell">周转周期（新车）</th><th v-if="activeMetric === 'turnoverDays'" class="metric-cell">周转周期（二手车）</th>
+                <th class="metric-cell" :class="{ 'active-metric': activeMetric === 'outbound' }">
+                  <button v-if="activeMetric === 'outbound'" type="button" class="sort-trigger" :aria-label="sortAriaLabel('出库量（过户）')" @click="toggleMetricSort"><span>出库量（过户）</span><span class="sort-arrows" aria-hidden="true"><i class="sort-arrow sort-arrow-up" :class="{ 'is-active': metricSortOrder === 'asc' }"></i><i class="sort-arrow sort-arrow-down" :class="{ 'is-active': metricSortOrder === 'desc' }"></i></span></button>
+                  <span v-else>出库量（过户）</span>
+                </th>
+                <th v-if="activeMetric === 'outbound'" class="metric-cell">出库量（新车）</th><th v-if="activeMetric === 'outbound'" class="metric-cell">出库量（二手车）</th>
+                <th class="metric-cell" :class="{ 'active-metric': activeMetric === 'outboundAmount' }">
+                  <button v-if="activeMetric === 'outboundAmount'" type="button" class="sort-trigger" :aria-label="sortAriaLabel('出库金额')" @click="toggleMetricSort"><span>出库金额</span><span class="sort-arrows" aria-hidden="true"><i class="sort-arrow sort-arrow-up" :class="{ 'is-active': metricSortOrder === 'asc' }"></i><i class="sort-arrow sort-arrow-down" :class="{ 'is-active': metricSortOrder === 'desc' }"></i></span></button>
+                  <span v-else>出库金额</span>
+                </th>
+                <th v-if="activeMetric === 'outboundAmount'" class="metric-cell">出库金额（新车）</th><th v-if="activeMetric === 'outboundAmount'" class="metric-cell">出库金额（二手车）</th>
               </template>
             </tr></thead>
             <tbody><tr v-for="(row, idx) in pagedList" :key="row.id">
@@ -1096,9 +1116,11 @@
                 <td :class="{ 'active-metric': activeMetric === 'inbound' }">{{ row.inbound }} 辆</td>
                 <td v-if="activeMetric === 'inbound'">{{ row.newInbound }} 辆</td><td v-if="activeMetric === 'inbound'">{{ row.usedInbound }} 辆</td>
                 <td :class="{ 'active-metric': activeMetric === 'turnoverDays' }">{{ row.turnoverDays }} 天</td>
+                <td v-if="activeMetric === 'turnoverDays'">{{ row.newTurnoverDays }} 天</td><td v-if="activeMetric === 'turnoverDays'">{{ row.usedTurnoverDays }} 天</td>
                 <td :class="{ 'active-metric': activeMetric === 'outbound' }">{{ row.outbound }} 辆</td>
+                <td v-if="activeMetric === 'outbound'">{{ row.newOutbound }} 辆</td><td v-if="activeMetric === 'outbound'">{{ row.usedOutbound }} 辆</td>
                 <td :class="{ 'active-metric': activeMetric === 'outboundAmount' }">{{ row.outboundAmount }} 万元</td>
-                <td v-if="activeMetric === 'inbound'">{{ row.newOutboundAmount }} 万元</td><td v-if="activeMetric === 'inbound'">{{ row.usedOutboundAmount }} 万元</td>
+                <td v-if="activeMetric === 'outboundAmount'">{{ row.newOutboundAmount }} 万元</td><td v-if="activeMetric === 'outboundAmount'">{{ row.usedOutboundAmount }} 万元</td>
               </template>
             </tr></tbody>
           </table>
@@ -1320,6 +1342,11 @@
     }
     // #AI:dev:end
     // #AI:dev:merchant-ranking:start
+    function filterMerchantRows(rows, market, merchantKeyword) {
+      return rows.filter(function (row) {
+        return (!market || row.market === market) && (!merchantKeyword || row.merchant.indexOf(merchantKeyword) !== -1);
+      });
+    }
     function rankMerchantRows(rows, dimension, order) {
       if (dimension === "all") return rows.slice();
       var direction = order ? (order === "asc" ? 1 : -1) : dimension === "turnoverDays" ? 1 : -1;
@@ -1750,23 +1777,23 @@
         var amount = [1280.6, 1168.4, 1452.8, 896.5, 1056.2, 782.9, 1378.3, 1211.7, 698.4, 974.6, 835.2, 1304.9];
         return {
           markets: MARKETS,
-          filter: { market: "", dateRange: currentMonthRange() },
+          filter: { market: "", merchant: "", dateRange: currentMonthRange() },
           activeMetric: "all",
-          inboundSort: "desc",
+          sortOrders: { inbound: "desc", turnoverDays: "asc", outbound: "desc", outboundAmount: "desc" },
           currentPage: 1,
           pageSize: 10,
           list: names.map(function (name, i) {
             var inboundSplit = splitMerchantMetric(inbound[i], 0.45 + (i % 3) * 0.05, 0);
+            var outboundSplit = splitMerchantMetric(outbound[i], 0.45 + (i % 3) * 0.05, 0);
             var amountSplit = splitMerchantMetric(amount[i], 0.5 + (i % 3) * 0.05, 1);
-            return { id: i + 1, market: MARKETS[i % MARKETS.length], merchant: name, inbound: inbound[i], newInbound: inboundSplit.first, usedInbound: inboundSplit.second, listed: Math.round(inbound[i] * 0.86), turnoverDays: turnover[i], outbound: outbound[i], outboundAmount: amount[i], newOutboundAmount: amountSplit.first, usedOutboundAmount: amountSplit.second };
+            return { id: i + 1, market: MARKETS[i % MARKETS.length], merchant: name, inbound: inbound[i], newInbound: inboundSplit.first, usedInbound: inboundSplit.second, listed: Math.round(inbound[i] * 0.86), turnoverDays: turnover[i], newTurnoverDays: Number((turnover[i] - 1.2).toFixed(1)), usedTurnoverDays: Number((turnover[i] + 1.2).toFixed(1)), outbound: outbound[i], newOutbound: outboundSplit.first, usedOutbound: outboundSplit.second, outboundAmount: amount[i], newOutboundAmount: amountSplit.first, usedOutboundAmount: amountSplit.second };
           })
         };
       },
       computed: {
         sortedList: function () {
-          var market = this.filter.market;
-          var rows = this.list.filter(function (row) { return !market || row.market === market; });
-          return rankMerchantRows(rows, this.activeMetric, this.activeMetric === "inbound" ? this.inboundSort : null);
+          var rows = filterMerchantRows(this.list, this.filter.market, this.filter.merchant);
+          return rankMerchantRows(rows, this.activeMetric, this.sortOrders[this.activeMetric]);
         },
         pagedList: function () {
           var start = (this.currentPage - 1) * this.pageSize;
@@ -1787,20 +1814,26 @@
         },
         podiumRows: function () {
           return merchantPodiumRows(rankMerchantRows(this.sortedList, this.activeMetric));
+        },
+        metricSortOrder: function () {
+          return this.sortOrders[this.activeMetric];
         }
       },
       methods: {
         handleSearch: function () { this.currentPage = 1; },
         handleReset: function () {
-          this.filter = { market: "", dateRange: currentMonthRange() };
+          this.filter = { market: "", merchant: "", dateRange: currentMonthRange() };
           this.activeMetric = "all";
-          this.inboundSort = "desc";
+          this.sortOrders = { inbound: "desc", turnoverDays: "asc", outbound: "desc", outboundAmount: "desc" };
           this.currentPage = 1;
         },
         handleTabChange: function () { this.currentPage = 1; },
-        toggleInboundSort: function () {
-          this.inboundSort = this.inboundSort === "desc" ? "asc" : "desc";
+        toggleMetricSort: function () {
+          this.sortOrders[this.activeMetric] = this.metricSortOrder === "asc" ? "desc" : "asc";
           this.currentPage = 1;
+        },
+        sortAriaLabel: function (label) {
+          return label + "当前" + (this.metricSortOrder === "asc" ? "正序" : "倒序") + "，点击切换";
         },
         podiumMetricValue: function (row) {
           if (this.activeMetric === "turnoverDays") return row.turnoverDays + " 天";
@@ -1814,27 +1847,37 @@
           return "出库量（过户） " + row.outbound + " 辆";
         },
         displayRank: function (row, index) {
-          if (this.activeMetric !== "inbound") return (this.currentPage - 1) * this.pageSize + index + 1;
-          return rankMerchantRows(this.sortedList, "inbound", "desc").findIndex(function (item) { return item.id === row.id; }) + 1;
+          if (this.activeMetric === "all") return (this.currentPage - 1) * this.pageSize + index + 1;
+          return rankMerchantRows(this.sortedList, this.activeMetric).findIndex(function (item) { return item.id === row.id; }) + 1;
         },
         formatTrend: formatMerchantTrend,
         averageOutboundAmount: averageMerchantOutboundAmount,
         handleExport: function () {
           var isAll = this.activeMetric === "all";
           var isInbound = this.activeMetric === "inbound";
-          var inboundDescending = isInbound ? rankMerchantRows(this.sortedList, "inbound", "desc") : [];
+          var isTurnover = this.activeMetric === "turnoverDays";
+          var isOutbound = this.activeMetric === "outbound";
+          var rankedRows = isAll ? [] : rankMerchantRows(this.sortedList, this.activeMetric);
           var rows = [isAll
             ? ["序号", "所属市场", "商户名称", "入库总数", "上架总数", "出库总数", "平均周转周期（天）", "出库总金额（万元）", "平均出库金额（万元）"]
             : isInbound
-              ? ["排名", "所属市场", "商户名称", "入库量", "新车", "二手车", "周转周期（天）", "出库量（过户）", "出库金额（万元）", "出库金额（新车）（万元）", "出库金额（二手车）（万元）"]
-              : ["排名", "所属市场", "商户名称", "入库量", "周转周期（天）", "出库量（过户）", "出库金额（万元）"]];
+              ? ["排名", "所属市场", "商户名称", "入库量", "新车", "二手车", "周转周期（天）", "出库量（过户）", "出库金额（万元）"]
+              : isTurnover
+                ? ["排名", "所属市场", "商户名称", "入库量", "周转周期（天）", "周转周期（新车）（天）", "周转周期（二手车）（天）", "出库量（过户）", "出库金额（万元）"]
+                : isOutbound
+                  ? ["排名", "所属市场", "商户名称", "入库量", "周转周期（天）", "出库量（过户）", "出库量（新车）", "出库量（二手车）", "出库金额（万元）"]
+                  : ["排名", "所属市场", "商户名称", "入库量", "周转周期（天）", "出库量（过户）", "出库金额（万元）", "出库金额（新车）（万元）", "出库金额（二手车）（万元）"]];
           this.sortedList.forEach(function (row, index) {
-            var rank = isInbound ? inboundDescending.findIndex(function (item) { return item.id === row.id; }) + 1 : index + 1;
+            var rank = isAll ? index + 1 : rankedRows.findIndex(function (item) { return item.id === row.id; }) + 1;
             rows.push(isAll
               ? [index + 1, row.market, row.merchant, row.inbound, row.listed, row.outbound, row.turnoverDays, row.outboundAmount, averageMerchantOutboundAmount(row)]
               : isInbound
-                ? [rank, row.market, row.merchant, row.inbound, row.newInbound, row.usedInbound, row.turnoverDays, row.outbound, row.outboundAmount, row.newOutboundAmount, row.usedOutboundAmount]
-                : [index + 1, row.market, row.merchant, row.inbound, row.turnoverDays, row.outbound, row.outboundAmount]);
+                ? [rank, row.market, row.merchant, row.inbound, row.newInbound, row.usedInbound, row.turnoverDays, row.outbound, row.outboundAmount]
+                : isTurnover
+                  ? [rank, row.market, row.merchant, row.inbound, row.turnoverDays, row.newTurnoverDays, row.usedTurnoverDays, row.outbound, row.outboundAmount]
+                  : isOutbound
+                    ? [rank, row.market, row.merchant, row.inbound, row.turnoverDays, row.outbound, row.newOutbound, row.usedOutbound, row.outboundAmount]
+                    : [rank, row.market, row.merchant, row.inbound, row.turnoverDays, row.outbound, row.outboundAmount, row.newOutboundAmount, row.usedOutboundAmount]);
           });
           var ws = XLSX.utils.aoa_to_sheet(rows);
           var wb = XLSX.utils.book_new();
