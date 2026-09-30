@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<!-- #AI:design:file -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>客户管理 · 花乡PC管理系统</title>
+  <style>
+    @font-face { font-family:element-icons; src:url('./assets/element-icons.woff') format('woff'); font-weight:400; font-style:normal; }
+    [class^="el-icon-"] { font-family:element-icons!important; font-style:normal; font-weight:400; line-height:1; }
+    .el-icon-arrow-down::before { content:"\e6df"; }
+    .el-icon-close::before { content:"\e6db"; }
+    .el-icon-data-analysis::before { content:"\e766"; }
+    .el-icon-date::before { content:"\e78e"; }
+    :root { --green:#00a73b; --green-hover:#1fb856; --text:#1f2329; --body:#606266; --muted:#909399; --line:#eceef5; --input:#dddfe6; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-width:1180px; font:14px/1.5 "PingFang SC","Microsoft YaHei",sans-serif; color:var(--text); background:#f1f4f5; }
+    button, input, select { font:inherit; }
+    .app { min-height:100vh; display:grid; grid-template-columns:220px 1fr; }
+    .sidebar { background:#fff; border-right:1px solid var(--line); }
+    .brand { height:56px; display:flex; align-items:center; justify-content:center; gap:8px; font-size:16px; font-weight:600; border-bottom:1px solid var(--line); }
+    .brand i { width:26px; height:26px; display:grid; place-items:center; border-radius:50%; background:var(--green); color:#fff; font-style:normal; font-size:13px; }
+    .nav-title { height:56px; display:flex; align-items:center; padding:0 20px; color:var(--green); cursor:default; }
+    .nav-title > i { width:24px; margin-right:5px; color:#909399; text-align:center; font-size:18px; }.nav-title .nav-label { flex:1; }.nav-title .el-icon-arrow-down { width:auto; margin:0; font-size:12px; }
+    .nav-leads { padding:0; margin:0; list-style:none; }
+    .nav-leads button { width:100%; height:50px; padding:0 20px 0 40px; border:0; color:#333; text-align:left; background:#fff; cursor:pointer; }
+    .nav-leads button:hover { color:var(--green); background:rgba(0,167,59,.08); }
+    .nav-leads button.active { color:#fff; background:var(--green); }
+    .topbar { height:56px; display:flex; align-items:center; justify-content:space-between; padding:0 24px; background:#fff; border-bottom:1px solid #e8e8e8; }
+    .topbar strong { font-weight:600; }.admin { color:#333; }.admin span { margin-left:10px; color:var(--muted); font-size:13px; }
+    main { min-width:0; }.page { padding:15px; }.panel { background:#f9fafb; min-height:calc(100vh - 86px); overflow:hidden; }
+    .status-tabs { display:flex; margin:20px 10px 0; background:#fff; border:1px solid var(--line); }
+    .status-tabs button { min-width:140px; height:40px; padding:0 28px; border:0; border-right:1px solid var(--line); color:var(--text); background:#fff; cursor:pointer; }
+    .status-tabs button.active { background:#f2f2f2; font-weight:600; }.status-tabs button:hover { color:var(--text); background:#f7f8fa; }
+    .filters { display:flex; flex-wrap:wrap; gap:20px 10px; align-items:center; margin:20px 10px 0; padding:20px; background:#f2f2f2; }
+    .filter { display:flex; align-items:center; gap:12px; color:#6d6e72; }.filter-control { position:relative; display:inline-flex; }.filter input,.filter select { width:200px; height:36px; padding:0 15px; color:#606266; border:1px solid var(--input); border-radius:4px; background:#fff; outline:0; }.filter select { padding-right:32px; appearance:none; }.filter input:focus,.filter select:focus { border-color:var(--green); box-shadow:0 0 0 2px rgba(0,167,59,.08); }.filter input::placeholder,.filter select:invalid { color:#c1c4cb; }.filter-icon { position:absolute; top:11px; right:12px; color:#c0c4cc; pointer-events:none; font-size:14px; }.date-control input { padding-right:34px; }.actions { display:flex; gap:10px; }.filters .btn { height:40px; padding:0 20px; }.btn { height:36px; padding:0 16px; border:1px solid var(--input); border-radius:4px; color:#606266; background:#fff; cursor:pointer; }.btn.primary { border-color:var(--green); color:#fff; background:var(--green); }.btn.primary:hover { border-color:var(--green-hover); background:var(--green-hover); }.btn.primary:active { border-color:#009433; background:#009433; }
+    .table-wrap { margin:16px 10px 10px; overflow-x:auto; border:1px solid var(--line); background:#fff; }.lead-table { width:100%; min-width:1040px; border-collapse:collapse; }.lead-table th,.lead-table td { height:48px; padding:10px 14px; color:var(--body); text-align:left; white-space:nowrap; border-right:1px solid var(--line); border-bottom:1px solid var(--line); }.lead-table th { color:#919399; font-weight:600; background:#fff; }.lead-table tr:last-child td { border-bottom:0; }.lead-table th:last-child,.lead-table td:last-child { position:sticky; right:0; z-index:2; width:150px; border-right:0; text-align:center; background:#fff; box-shadow:-1px 0 var(--line); }.lead-table .vehicle { color:var(--green); cursor:pointer; }.op-cell { display:flex; flex-direction:column; align-items:center; gap:6px; }.view-button { height:28px; padding:0 15px; }.more { display:inline-flex; }.more-trigger { display:inline-flex; align-items:center; gap:2px; height:24px; padding:0 8px; border:1px solid var(--input); border-radius:4px; color:#616266; background:#fff; cursor:pointer; font-size:12px; }.more-menu { position:fixed; z-index:3000; width:106px; padding:5px 0; border:1px solid #ebeef5; border-radius:4px; background:#fff; box-shadow:0 2px 12px 0 rgba(0,0,0,.1); }.more-menu button { display:block; width:100%; height:36px; padding:0 20px; border:0; color:#606266; text-align:left; background:#fff; cursor:pointer; }.more-menu button:hover { color:var(--green); background:#f5fbf7; }
+    .pager { display:flex; justify-content:flex-end; align-items:center; gap:10px; padding:10px 10px 20px; color:#606266; }.pager button { width:28px; height:28px; border:1px solid var(--input); border-radius:3px; background:#fff; color:var(--green); }.pager button:disabled { color:#c0c4cc; }
+    .drawer-mask { position:fixed; inset:0; z-index:10; background:rgba(0,0,0,.3); }.drawer { position:absolute; top:0; right:0; width:82%; height:100%; overflow:auto; background:#fff; }.drawer-close { position:fixed; z-index:12; top:16px; left:calc(18% - 28px); display:grid; place-items:center; width:28px; height:28px; padding:0; border:0; border-radius:4px; color:#fff; background:var(--green); font-size:20px; cursor:pointer; }.drawer-inner { padding:20px 24px 30px; }.drawer-head { min-height:56px; display:flex; align-items:center; margin:-20px -24px 20px; padding:14px 24px; border-bottom:1px solid var(--line); font-size:18px; font-weight:600; }.drawer-who { margin-bottom:20px; }.drawer-name { margin-bottom:4px; font-size:16px; font-weight:600; }.drawer-phone { color:var(--muted); font-size:13px; }.drawer-body { display:grid; grid-template-columns:minmax(520px,1fr) 320px; gap:20px; align-items:start; }.section { border:1px solid var(--line); background:#fff; }.section h3 { display:flex; align-items:center; gap:8px; margin:0; padding:16px 20px; border-bottom:1px solid #f5f6f8; font-size:15px; }.section h3::before { width:3px; height:14px; background:var(--green); border-radius:2px; content:""; }.info-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); }.info { min-width:0; min-height:72px; padding:14px 20px; border-right:1px solid var(--line); border-bottom:1px solid var(--line); }.info:nth-child(2n) { border-right:0; }.info-label { color:var(--muted); font-size:13px; }.info-value { margin-top:5px; color:var(--text); overflow-wrap:anywhere; }.related-list { width:100%; border-collapse:collapse; }.related-list th,.related-list td { padding:10px 16px; color:var(--body); border-right:1px solid var(--line); border-bottom:1px solid var(--line); text-align:left; }.related-list th { color:#919399; font-weight:600; }.related-list tr:last-child td { border-bottom:0; }.timeline { padding:8px 20px 18px; }.timeline-item { position:relative; padding:12px 0 12px 18px; border-left:1px solid var(--line); color:#606266; }.timeline-item::before { position:absolute; top:18px; left:-4px; width:7px; height:7px; border-radius:50%; background:var(--green); content:""; }.timeline-item time { display:block; margin-bottom:3px; color:var(--muted); font-size:12px; }.tl-head { display:flex; align-items:center; gap:10px; }.tl-head time { margin-bottom:0; }.tl-tag { padding:3px 10px; border-radius:3px; color:#fff; background:var(--green); font-size:12px; white-space:nowrap; }.tl-line { margin-top:6px; color:var(--text); }
+    .confirm-mask { position:fixed; inset:0; z-index:4000; display:grid; place-items:center; background:rgba(0,0,0,.5); }.confirm-dialog { width:420px; min-height:136px; border-radius:4px; background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.2); }.confirm-head { position:relative; padding:15px 15px 10px; font-size:18px; line-height:24px; }.confirm-close { position:absolute; top:14px; right:15px; padding:0; border:0; color:#909399; background:transparent; cursor:pointer; font-size:16px; }.confirm-body { display:flex; align-items:center; gap:12px; padding:8px 18px 12px; color:#606266; }.warning-icon { display:inline-grid; flex:0 0 20px; place-items:center; width:20px; height:20px; border-radius:50%; color:#fff; background:#e6a23c; font-weight:600; }.confirm-foot { display:flex; justify-content:flex-end; gap:10px; padding:0 16px 11px; }.confirm-foot .btn { height:32px; padding:0 15px; }
+    .follow-dialog { width:576px; min-height:470px; border-radius:2px; background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.2); }.follow-head { position:relative; padding:19px 20px; font-size:18px; line-height:24px; }.follow-form { padding:21px 40px 0; }.follow-row { display:flex; align-items:flex-start; margin-bottom:32px; }.follow-label { width:80px; padding-right:12px; color:#606266; text-align:right; line-height:40px; }.follow-label::before { margin-right:4px; color:#f56c6c; content:"*"; }.follow-control { position:relative; width:342px; }.follow-control select,.follow-control textarea { width:100%; padding:0 15px; border:1px solid var(--input); border-radius:4px; color:#606266; background:#fff; outline:0; }.follow-control select { height:40px; padding-right:34px; appearance:none; }.follow-control textarea { height:121px; padding-top:10px; resize:none; font:inherit; line-height:1.5; }.follow-control select:invalid,.follow-control textarea::placeholder { color:#c1c4cb; }.follow-control .filter-icon { top:13px; }.follow-foot { display:flex; justify-content:flex-end; gap:14px; padding:29px 20px 19px; }.follow-foot .btn { height:40px; padding:0 21px; }
+    .assign-stack { display:flex; flex-direction:column; gap:24px; }
+    .assign-row .follow-label { width:100px; white-space:nowrap; }.assign-row .follow-control { width:322px; }
+    .el-select-s { position:relative; display:flex; align-items:center; height:40px; padding:0 34px 0 15px; border:1px solid var(--input); border-radius:4px; color:var(--body); background:#fff; cursor:pointer; font-size:14px; }
+    .el-select-s .el-select-s-value { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .el-select-s.placeholder .el-select-s-value { color:#c1c4cb; }
+    .el-select-s-arrow { position:absolute; right:10px; color:#c0c4cc; font-size:14px; transition:transform .3s; }
+    .el-select-s.is-open { border-color:var(--green); }
+    .el-select-s.is-open .el-select-s-arrow { transform:rotate(180deg); color:var(--green); }
+    .el-select-s.is-disabled { background:#f5f7fa; border-color:#e4e7ed; cursor:not-allowed; }
+    .el-select-s.is-disabled .el-select-s-value { color:#c0c4cc; }
+    .el-select-s.is-disabled .el-select-s-arrow { color:#c0c4cc; }
+    .el-s-dropdown { position:fixed; z-index:4100; max-height:200px; overflow:auto; padding:6px 0; border:1px solid #e4e7ed; border-radius:4px; background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.1); }
+    .el-s-dropdown .el-s-option { height:34px; padding:0 20px; color:#606266; font-size:14px; line-height:34px; cursor:pointer; white-space:nowrap; }
+    .el-s-dropdown .el-s-option:hover { background:#f5f7fa; }
+    .el-s-dropdown .el-s-option.selected { color:var(--green); font-weight:700; }
+  </style>
+</head>
+<body>
+  <div class="app customer-leads">
+    <aside class="sidebar"><div class="brand"><i>花</i>花乡PC管理系统</div><div class="nav-title"><i class="el-icon-data-analysis" aria-hidden="true"></i><span class="nav-label">客户管理</span><i class="el-icon-arrow-down" aria-hidden="true"></i></div><ul class="nav-leads" id="leadNav"></ul></aside>
+    <main><header class="topbar"><strong>【市场端管理后台】</strong><div class="admin">严洪健<span>超级管理员</span></div></header><div class="page"><section class="panel" id="page"></section></div></main>
+  </div>
+  <script>
+    // #AI:design:start
+    const STATUS = ['待跟进', '跟进中', '完成跟进', '跟进失败'];
+    const CONFIG = {
+      buy: { name:'买车线索', time:'录入时间', filters:['所属市场','品牌名称','联系电话','线索跟进人','录入时间'], columns:['姓名','手机号','车型','线索跟进人','录入时间'], total:'共 1348 条' },
+      sell: { name:'卖车线索', time:'录入时间', filters:['所属市场','品牌名称','联系电话','线索跟进人','录入时间'], columns:['姓名','手机号','车型','上牌时间','行驶里程（万公里）','线索跟进人','录入时间'], total:'共 347 条' },
+      intent: { name:'意向线索', time:'创建时间', filters:['联系方式','跟进状态','线索跟进人','创建时间','线索来源'], columns:['线索来源','手机号','用户名','咨询车辆','车架号','线索跟进人','点击次数','创建时间'], total:'共 52 条' }
+    };
+    const SELECT_FILTERS = new Set(['所属市场','线索跟进人','跟进状态','线索来源']);
+    // 分配线索弹窗的角色→员工候选（模拟数据，仅用于原型演示联动交互）。
+    const ASSIGN_ROLES = { '销售': ['张晨','李然','周晴','孙悦','吴帆','韩冰'], '客服': ['钱进','郑重'] };
+    // 仅用于原型演示的模拟数据，非真实客户或接口数据。
+    const DATA = {
+      buy: [
+        {id:1,name:'刘静',phone:'13800138000',vehicle:'宝马 X3',owner:'-',date:'2026-09-01 09:12:00',status:'待跟进'},
+        {id:2,name:'陈刚',phone:'13800138000',vehicle:'奥迪 Q5L',owner:'-',date:'2026-09-03 14:30:00',status:'待跟进'},
+        {id:3,name:'赵敏',phone:'13900139000',vehicle:'奔驰 C级',owner:'-',date:'2026-09-04 10:20:00',status:'待跟进'},
+        {id:4,name:'刘静',phone:'13800138000',vehicle:'沃尔沃 XC60',owner:'销售-张晨',date:'2026-08-29 16:05:00',status:'跟进中'},
+        {id:5,name:'王磊',phone:'13700137000',vehicle:'丰田 凯美瑞',owner:'销售-李然',date:'2026-09-05 11:10:00',status:'完成跟进'},
+        {id:6,name:'马琳',phone:'13600136000',vehicle:'大众 途观L',owner:'销售-周晴',date:'2026-09-02 15:40:00',status:'跟进失败'},
+        {id:7,name:'陈刚',phone:'13800138000',vehicle:'特斯拉 Model Y',owner:'销售-张晨',date:'2026-09-06 13:20:00',status:'完成跟进'},
+        {id:8,name:'林晓',phone:'15000001001',vehicle:'斯柯达 速派',owner:'-',date:'2026-09-06 09:05:00',status:'待跟进'},
+        {id:9,name:'周宁',phone:'15000001002',vehicle:'比亚迪 汉',owner:'-',date:'2026-09-07 10:35:00',status:'待跟进'},
+        {id:10,name:'高远',phone:'15000001003',vehicle:'雷克萨斯 NX',owner:'销售-孙悦',date:'2026-09-07 14:18:00',status:'跟进中'},
+        {id:11,name:'程萌',phone:'15000001004',vehicle:'别克 GL8',owner:'销售-李然',date:'2026-09-08 08:50:00',status:'完成跟进'},
+        {id:12,name:'许杰',phone:'15000001005',vehicle:'本田 CR-V',owner:'销售-周晴',date:'2026-09-08 16:45:00',status:'跟进失败'}
+      ],
+      sell: [
+        {id:11,name:'孙凯',phone:'13500135000',vehicle:'宝马 5系',plate:'2021-05',mileage:'3.60',owner:'-',date:'2026-09-01 08:40:00',status:'待跟进'},
+        {id:12,name:'周婷',phone:'13400134000',vehicle:'奥迪 A6L',plate:'2020-03',mileage:'5.20',owner:'-',date:'2026-09-03 13:15:00',status:'待跟进'},
+        {id:13,name:'孙凯',phone:'13500135000',vehicle:'雷克萨斯 ES',plate:'2022-08',mileage:'2.10',owner:'销售-孙悦',date:'2026-08-28 17:20:00',status:'跟进中'},
+        {id:14,name:'丁宁',phone:'13300133000',vehicle:'本田 雅阁',plate:'2020-10',mileage:'4.80',owner:'销售-吴帆',date:'2026-09-05 09:30:00',status:'完成跟进'},
+        {id:15,name:'罗阳',phone:'13200132000',vehicle:'大众 帕萨特',plate:'2019-02',mileage:'6.40',owner:'销售-韩冰',date:'2026-09-02 18:00:00',status:'跟进失败'},
+        {id:16,name:'孙凯',phone:'13500135000',vehicle:'特斯拉 Model 3',plate:'2023-02',mileage:'1.20',owner:'-',date:'2026-09-06 11:25:00',status:'待跟进'},
+        {id:17,name:'李笑',phone:'15200002001',vehicle:'蔚来 ES6',plate:'2022-11',mileage:'2.30',owner:'-',date:'2026-09-06 15:10:00',status:'待跟进'},
+        {id:18,name:'胡涛',phone:'15200002002',vehicle:'丰田 汉兰达',plate:'2021-09',mileage:'3.80',owner:'-',date:'2026-09-07 09:40:00',status:'待跟进'},
+        {id:19,name:'苏悦',phone:'15200002003',vehicle:'奥迪 A4L',plate:'2020-12',mileage:'4.10',owner:'销售-张晨',date:'2026-09-07 13:55:00',status:'跟进中'},
+        {id:20,name:'郑伟',phone:'15200002004',vehicle:'奔驰 E级',plate:'2021-07',mileage:'3.20',owner:'销售-李然',date:'2026-09-08 10:15:00',status:'完成跟进'},
+        {id:21,name:'韩峰',phone:'15200002005',vehicle:'大众 途昂',plate:'2019-08',mileage:'7.10',owner:'销售-韩冰',date:'2026-09-08 17:05:00',status:'跟进失败'}
+      ],
+      // 意向线索样例咨询时间仅用于静态预览，不代表真实历史记录。
+      intent: [
+        {id:21,source:'线上咨询',phone:'13100131000',wechat:'一路顺风',vehicle:'宝马 X3',vin:'LBVNR31010K123456',owner:'-',clicks:4,date:'2026-09-01 08:20:00',status:'待跟进',previewConsultationTimes:['2026-09-04 14:15:00','2026-09-03 10:20:00','2026-09-02 16:40:00','2026-09-01 08:20:00']},
+        {id:22,source:'线上咨询',phone:'13000130000',wechat:'平静的水面',vehicle:'奥迪 Q5L',vin:'LFV3B28R9M3091234',owner:'-',clicks:1,date:'2026-09-03 12:40:00',status:'待跟进',previewConsultationTimes:['2026-09-03 12:40:00']},
+        {id:23,source:'线上咨询',phone:'13100131000',wechat:'一路顺风',vehicle:'宝马 X3',vin:'LBVNR31010K123456',owner:'销售-李然',clicks:3,date:'2026-08-30 16:10:00',status:'跟进中',previewConsultationTimes:['2026-09-01 09:30:00','2026-08-31 08:20:00','2026-08-30 16:10:00']},
+        {id:24,source:'线上咨询',phone:'12900129000',wechat:'Cindy张',vehicle:'奔驰 C级',vin:'LE4HG6EB5BL543210',owner:'销售-周晴',clicks:2,date:'2026-09-04 09:10:00',status:'完成跟进',previewConsultationTimes:['2026-09-04 09:10:00','2026-09-03 15:12:00']},
+        {id:25,source:'线上咨询',phone:'12800128000',wechat:'北纬三十度',vehicle:'沃尔沃 XC60',vin:'YV1D256J8F2456789',owner:'销售-吴帆',clicks:2,date:'2026-09-02 18:35:00',status:'跟进失败',previewConsultationTimes:['2026-09-02 18:35:00','2026-09-02 09:55:00']},
+        {id:26,source:'线上咨询',phone:'13100131000',wechat:'一路顺风',vehicle:'奔驰 GLC',vin:'LE4HG6EB7BL654321',owner:'-',clicks:1,date:'2026-09-06 10:05:00',status:'待跟进',previewConsultationTimes:['2026-09-06 10:05:00']},
+        {id:27,source:'线上咨询',phone:'15300003001',wechat:'早起的鸟',vehicle:'理想 L8',vin:'LVVDB2196R1001101',owner:'-',clicks:2,date:'2026-09-06 14:30:00',status:'待跟进',previewConsultationTimes:['2026-09-07 11:04:00','2026-09-06 14:30:00']},
+        {id:28,source:'线上咨询',phone:'15300003002',wechat:'Nicole',vehicle:'蔚来 ES6',vin:'LNLAMF1K7N0053322',owner:'-',clicks:1,date:'2026-09-07 08:45:00',status:'待跟进',previewConsultationTimes:['2026-09-07 08:45:00']},
+        {id:29,source:'线上咨询',phone:'15300003003',wechat:'山那边',vehicle:'大众 途昂',vin:'LSVUR8CA1K2209876',owner:'销售-孙悦',clicks:3,date:'2026-09-07 12:20:00',status:'跟进中',previewConsultationTimes:['2026-09-09 10:45:00','2026-09-08 16:10:00','2026-09-07 12:20:00']},
+        {id:30,source:'线上咨询',phone:'15300003004',wechat:'奋斗中...',vehicle:'雷克萨斯 RX',vin:'JTJZA01Z805012345',owner:'销售-李然',clicks:2,date:'2026-09-08 09:15:00',status:'完成跟进',previewConsultationTimes:['2026-09-08 09:15:00','2026-09-07 18:00:00']},
+        {id:31,source:'线上咨询',phone:'15300003005',wechat:'海阔天空',vehicle:'丰田 RAV4荣放',vin:'JTMCJ1RV00J012345',owner:'销售-韩冰',clicks:2,date:'2026-09-08 16:25:00',status:'跟进失败',previewConsultationTimes:['2026-09-08 16:25:00','2026-09-08 11:10:00']}
+      ]
+    };
+    // 跟进记录（模拟）：待跟进仅“创建客户”；跟进中/完成跟进/跟进失败含“新增跟进”记录，时间线按时间倒序。
+    function fmt(d) { const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+    function plusTime(s, mins) { const d = new Date(s.replace(' ', 'T')); d.setMinutes(d.getMinutes() + mins); return fmt(d); }
+    function initRecords() { Object.values(DATA).forEach(list => list.forEach(row => { row.records = [{ time: row.date, type: '创建客户', assignee: row.owner === '-' ? '' : row.owner }]; if (row.status === '跟进中') row.records.push({ time: plusTime(row.date, 30), type: '新增跟进', operator: row.owner, result: '跟进中', content: '电话沟通，客户有购车意向，继续跟进' }); if (row.status === '完成跟进') { row.records.push({ time: plusTime(row.date, 30), type: '新增跟进', operator: row.owner, result: '跟进中', content: '电话沟通，确认到店时间' }); row.records.push({ time: plusTime(row.date, 120), type: '新增跟进', operator: row.owner, result: '完成跟进', content: '客户到店看车，达成成交意向' }); } if (row.status === '跟进失败') row.records.push({ time: plusTime(row.date, 30), type: '新增跟进', operator: row.owner, result: '跟进失败', content: '多次联系未接通，线索无效' }); })); }
+    initRecords();
+    let currentType = 'buy', currentStatus = '待跟进', menuId = null, claimId = null, followId = null, assignId = null;
+    const nav = document.querySelector('#leadNav'), page = document.querySelector('#page');
+    function actionsFor(status) { return status === '待跟进' ? ['分配线索','认领线索','删除'] : status === '跟进中' ? ['新增跟进','删除'] : ['删除']; }
+    function rows() { const descending = currentStatus !== '待跟进'; return DATA[currentType].filter(row => row.status === currentStatus).sort((a,b) => descending ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)); }
+    function navRender() { nav.innerHTML = Object.entries(CONFIG).map(([key,item]) => `<li><button type="button" class="${key===currentType?'active':''}" aria-pressed="${key===currentType}" onclick="selectType('${key}')">${item.name}</button></li>`).join(''); }
+    function fieldHtml(label) {
+      if (SELECT_FILTERS.has(label)) return `<label class="filter"><span>${label}</span><span class="filter-control"><select aria-label="${label}" required><option value="">请选择</option></select><i class="el-icon-arrow-down filter-icon" aria-hidden="true"></i></span></label>`;
+      if (label.includes('时间')) return `<label class="filter"><span>${label}</span><span class="filter-control date-control"><input aria-label="${label}" placeholder="请选择日期" readonly><i class="el-icon-date filter-icon" aria-hidden="true"></i></span></label>`;
+      return `<label class="filter"><span>${label}</span><input aria-label="${label}" placeholder="请输入"></label>`;
+    }
+    function render() {
+      document.querySelector('#moreMenu')?.remove();
+      const config = CONFIG[currentType], list = rows();
+      page.innerHTML = `<div class="status-tabs" role="tablist">${STATUS.map(status => `<button type="button" role="tab" aria-selected="${status===currentStatus}" class="${status===currentStatus?'active':''}" onclick="selectStatus('${status}')">${status}</button>`).join('')}</div>
+        <div class="filters">${config.filters.map(fieldHtml).join('')}<div class="actions"><button class="btn primary" type="button">查询</button><button class="btn" type="button">重置</button><button class="btn primary" type="button">${currentType==='intent'?'查询数据导出':'查询导出'}</button></div></div>
+        <div class="table-wrap"><table class="lead-table"><thead><tr>${config.columns.map(col => `<th>${col}</th>`).join('')}<th>操作</th></tr></thead><tbody>${list.map(rowHtml).join('') || `<tr><td colspan="${config.columns.length+1}">暂无数据</td></tr>`}</tbody></table></div><div class="pager"><span>${config.total}</span><button disabled>‹</button><button>1</button><button>›</button></div>`;
+      renderMenu();
+    }
+    function rowHtml(row) { const more = actionsFor(row.status); let cells;
+      if (currentType==='buy') cells = [row.name,row.phone,row.vehicle,currentStatus==='待跟进'?'':row.owner,row.date];
+      else if (currentType==='sell') cells = [row.name,row.phone,row.vehicle,row.plate,row.mileage,currentStatus==='待跟进'?'':row.owner,row.date];
+      else cells = [row.source,row.phone,row.wechat,`<span class="vehicle" title="模拟用户再次点击咨询车况" onclick="intentReclick(${row.id},event)">${row.vehicle}</span>`,row.vin,currentStatus==='待跟进'?'':row.owner,row.clicks,row.date];
+      return `<tr>${cells.map(cell => `<td>${cell}</td>`).join('')}<td><div class="op-cell"><button class="btn primary view-button" type="button" aria-label="查看" onclick="openDetail(${row.id})">查看</button><span class="more"><button class="more-trigger" type="button" aria-label="更多操作" data-menu-id="${row.id}" onclick="toggleMenu(${row.id},event)">更多操作<i class="el-icon-arrow-down" aria-hidden="true"></i></button></span></div></td></tr>`;
+    }
+    function selectType(type) { currentType=type; currentStatus='待跟进'; menuId=null; navRender(); render(); }
+    function selectStatus(status) { currentStatus=status; menuId=null; render(); }
+    function toggleMenu(id,event) { event?.stopPropagation(); menuId=menuId===id?null:id; render(); }
+    function renderMenu() { if (!menuId) return; const row=DATA[currentType].find(item=>item.id===menuId), trigger=document.querySelector(`[data-menu-id="${menuId}"]`); if (!row || !trigger) return; const menu=document.createElement('div'); menu.id='moreMenu'; menu.className='more-menu'; menu.innerHTML=actionsFor(row.status).map(action=>`<button type="button" onclick="handleAction(${row.id},'${action}')">${action}</button>`).join(''); document.body.appendChild(menu); const rect=trigger.getBoundingClientRect(), menuRect=menu.getBoundingClientRect(), gap=6; menu.style.left=`${Math.max(8,Math.min(innerWidth-menuRect.width-8,rect.right-menuRect.width))}px`; menu.style.top=`${rect.bottom+gap+menuRect.height<=innerHeight?rect.bottom+gap:rect.top-menuRect.height-gap}px`; }
+    function isLeadType() { return currentType==='buy' || currentType==='sell'; }
+    function handleAction(id,action) { const row=DATA[currentType].find(item=>item.id===id); if (currentType==='intent' && row?.status==='待跟进' && action==='认领线索') { row.status='跟进中'; menuId=null; document.querySelector('#moreMenu')?.remove(); render(); return; } if (isLeadType() && row?.status==='待跟进' && action==='认领线索') { menuId=null; document.querySelector('#moreMenu')?.remove(); openClaimDialog(id); return; } if (isLeadType() && row?.status==='跟进中' && action==='新增跟进') { menuId=null; document.querySelector('#moreMenu')?.remove(); openFollowDialog(id); return; } if (isLeadType() && row?.status==='待跟进' && action==='分配线索') { menuId=null; document.querySelector('#moreMenu')?.remove(); openAssignDialog(id); return; } menuId=null; render(); }
+    function changePendingGroup(row, owner) { DATA[currentType].forEach(item=>{ if (item.phone===row.phone && item.status==='待跟进') { item.status='跟进中'; if (owner) { item.owner=owner; const created=item.records?.find(r=>r.type==='创建客户'); if (created) created.assignee=owner; } } }); }
+    function openClaimDialog(id) { const row=DATA[currentType].find(item=>item.id===id); if (!row) return; claimId=id; const count=DATA[currentType].filter(item=>item.phone===row.phone && item.status==='待跟进').length, message=count===1?'确认认领这条意向线索嘛?':`该手机号下有${count}条待跟进线索，确认认领意向线索吗?`; document.body.insertAdjacentHTML('beforeend', `<div class="confirm-mask" id="claimDialog"><section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="claimDialogTitle"><header class="confirm-head" id="claimDialogTitle">提示<button class="confirm-close" type="button" aria-label="关闭" data-dialog-action="cancel" onclick="closeClaimDialog()"><i class="el-icon-close" aria-hidden="true"></i></button></header><div class="confirm-body"><span class="warning-icon" aria-hidden="true">!</span><span class="confirm-message">${message}</span></div><footer class="confirm-foot"><button class="btn" type="button" data-dialog-action="cancel" onclick="closeClaimDialog()">取消</button><button class="btn primary" type="button" data-dialog-action="confirm" onclick="confirmClaim()">确定</button></footer></section></div>`); }
+    function closeClaimDialog() { document.querySelector('#claimDialog')?.remove(); claimId=null; }
+    function confirmClaim() { const row=DATA[currentType].find(item=>item.id===claimId); if (row) changePendingGroup(row); closeClaimDialog(); render(); }
+    function openFollowDialog(id) { followId=id; document.body.insertAdjacentHTML('beforeend', `<div class="confirm-mask" id="followDialog"><section class="follow-dialog" role="dialog" aria-modal="true" aria-labelledby="followDialogTitle"><header class="follow-head" id="followDialogTitle">新增跟进<button class="confirm-close" type="button" aria-label="关闭" onclick="closeFollowDialog()"><i class="el-icon-close" aria-hidden="true"></i></button></header><div class="follow-form"><label class="follow-row"><span class="follow-label">跟进结果</span><span class="follow-control"><select id="followResult" required><option value="" selected disabled>请选择跟进结果</option><option>跟进中</option><option>完成跟进</option><option>跟进失败</option></select><i class="el-icon-arrow-down filter-icon" aria-hidden="true"></i></span></label><label class="follow-row"><span class="follow-label">沟通方式</span><span class="follow-control"><select id="followChannel" required><option value="" selected disabled>请选择沟通方式</option><option>电话</option><option>短信</option><option>微信</option><option>到店</option></select><i class="el-icon-arrow-down filter-icon" aria-hidden="true"></i></span></label><label class="follow-row"><span class="follow-label">跟进内容</span><span class="follow-control"><textarea id="followContent" maxlength="60" required placeholder="请输入内容，60字以内"></textarea></span></label></div><footer class="follow-foot"><button class="btn" type="button" onclick="closeFollowDialog()">取消</button><button class="btn primary" type="button" data-follow-action="confirm" onclick="confirmFollow()">确定</button></footer></section></div>`); }
+    function closeFollowDialog() { document.querySelector('#followDialog')?.remove(); followId=null; }
+    let assignSel = { role: '', staff: '' };
+    function openAssignDialog(id) { assignId=id; assignSel={ role:'', staff:'' }; document.body.insertAdjacentHTML('beforeend', `<div class="confirm-mask" id="assignDialog"><section class="follow-dialog" role="dialog" aria-modal="true" aria-labelledby="assignDialogTitle"><header class="follow-head" id="assignDialogTitle">分配线索<button class="confirm-close" type="button" aria-label="关闭" onclick="closeAssignDialog()"><i class="el-icon-close" aria-hidden="true"></i></button></header><div class="follow-form"><div class="follow-row assign-row"><span class="follow-label">线索跟进人</span><span class="follow-control assign-stack"><span class="el-select-s placeholder" id="assignRole" role="button" aria-label="角色" onclick="toggleAssignDropdown('assignRole',event)"><span class="el-select-s-value">请选择角色</span><i class="el-icon-arrow-down el-select-s-arrow" aria-hidden="true"></i></span><span class="el-select-s placeholder is-disabled" id="assignStaff" role="button" aria-label="员工" onclick="toggleAssignDropdown('assignStaff',event)"><span class="el-select-s-value">请选择员工</span><i class="el-icon-arrow-down el-select-s-arrow" aria-hidden="true"></i></span></span></div></div><footer class="follow-foot"><button class="btn" type="button" onclick="closeAssignDialog()">取消</button><button class="btn primary" type="button" data-assign-action="confirm" onclick="confirmAssign()">确定</button></footer></section></div>`); }
+    function assignKey(id) { return id==='assignRole' ? 'role' : 'staff'; }
+    function assignOptions(id) { return id==='assignRole' ? Object.keys(ASSIGN_ROLES) : (ASSIGN_ROLES[assignSel.role]||[]); }
+    function toggleAssignDropdown(id,event) { event?.stopPropagation(); const el=document.getElementById(id); if (!el || el.classList.contains('is-disabled')) return; const opened=document.getElementById(`${id}Pop`); closeAssignDropdowns(); if (opened) return; const key=assignKey(id), pop=document.createElement('div'); pop.id=`${id}Pop`; pop.className='el-s-dropdown'; pop.innerHTML=assignOptions(id).map(o=>`<div class="el-s-option${assignSel[key]===o?' selected':''}" data-value="${o}">${o}</div>`).join(''); document.body.appendChild(pop); const rect=el.getBoundingClientRect(), ph=pop.offsetHeight; pop.style.left=`${rect.left}px`; pop.style.width=`${rect.width}px`; pop.style.top=`${rect.bottom+ph+6<=innerHeight?rect.bottom+4:rect.top-ph-4}px`; el.classList.add('is-open'); pop.querySelectorAll('.el-s-option').forEach(opt=>opt.addEventListener('click',ev=>{ ev.stopPropagation(); setAssignValue(id, opt.dataset.value); })); }
+    function setAssignValue(id,value) { const key=assignKey(id), el=document.getElementById(id); assignSel[key]=value; el.querySelector('.el-select-s-value').textContent=value; el.classList.remove('placeholder'); if (id==='assignRole') { const s=document.getElementById('assignStaff'); assignSel.staff=''; s.querySelector('.el-select-s-value').textContent='请选择员工'; s.classList.add('placeholder'); s.classList.remove('is-disabled'); } closeAssignDropdowns(); }
+    function closeAssignDropdowns() { document.querySelectorAll('.el-s-dropdown').forEach(p=>p.remove()); document.querySelectorAll('.el-select-s.is-open').forEach(e=>e.classList.remove('is-open')); }
+    function closeAssignDialog() { closeAssignDropdowns(); document.querySelector('#assignDialog')?.remove(); assignId=null; }
+    function confirmAssign() { const row=DATA[currentType].find(item=>item.id===assignId); if (!row || !assignSel.role || !assignSel.staff) return; changePendingGroup(row, `${assignSel.role}-${assignSel.staff}`); closeAssignDialog(); render(); }
+    function confirmFollow() { const dialog=document.querySelector('#followDialog'), row=DATA[currentType].find(item=>item.id===followId), result=dialog?.querySelector('#followResult').value, channel=dialog?.querySelector('#followChannel').value, content=dialog?.querySelector('#followContent').value.trim(); if (!row || !result || !channel || !content) return; const now=fmt(new Date()); DATA[currentType].forEach(item=>{ if (item.phone===row.phone && item.status==='跟进中') { item.status=result; item.records.push({ time:now, type:'新增跟进', operator:'严洪健', result, channel, content }); } }); closeFollowDialog(); render(); }
+    function timelineHtml(row) { const list=(row.records||[]).slice().sort((a,b)=>b.time.localeCompare(a.time)); if (!list.length) return '<div class="timeline-item">暂无跟进记录</div>'; return list.map(r=>r.type==='新增跟进'?`<div class="timeline-item"><div class="tl-head"><time>${r.time}</time><span class="tl-tag">新增跟进</span></div><div class="tl-line">操作人：${r.operator}</div><div class="tl-line">跟进结果：${r.result}</div><div class="tl-line">跟进内容：${r.content}</div></div>`:`<div class="timeline-item"><div class="tl-head"><time>${r.time}</time><span class="tl-tag">创建客户</span></div><div class="tl-line">分配跟进人：${r.assignee||''}</div></div>`).join(''); }
+    function consultationRows(row) {
+      if (!Array.isArray(row.consultationRecords)) {
+        const known = Array.isArray(row.previewConsultationTimes)
+          ? row.previewConsultationTimes.map(time => ({ vehicle:row.vehicle, time }))
+          : [{ vehicle:row.vehicle, time:row.date || '' }, ...(row.clickRecords || []).map(time => ({ vehicle:row.vehicle, time }))];
+        row.consultationRecords = known;
+      }
+      const count = Math.max(0, Number(row.clicks) || 0);
+      while (row.consultationRecords.length < count) row.consultationRecords.push({ vehicle:row.vehicle, time:'' });
+      row.consultationRecords = row.consultationRecords.slice(0, count);
+      row.consultationRecords.sort((a,b) => !a.time ? (!b.time ? 0 : 1) : !b.time ? -1 : b.time.localeCompare(a.time));
+      return row.consultationRecords;
+    }
+    function intentReclick(id,event) { event?.stopPropagation(); const row=DATA.intent.find(item=>item.id===id); if (!row) return; const now=fmt(new Date()); const records=consultationRows(row); row.clicks+=1; records.unshift({ vehicle:row.vehicle, time:now }); if (row.status==='完成跟进'||row.status==='跟进失败') { row.status='待跟进'; row.date=now; } render(); }
+    function openDetail(id) { const row=DATA[currentType].find(item => item.id===id); if (!row) return; const related=(currentType==='buy'||currentType==='sell') ? DATA[currentType].filter(item => item.phone===row.phone).sort((a,b) => a.id===row.id ? -1 : b.id===row.id ? 1 : b.date.localeCompare(a.date)) : [];
+      document.body.insertAdjacentHTML('beforeend', `<div class="drawer-mask" id="drawer"><button class="drawer-close" type="button" aria-label="关闭" onclick="closeDetail()">×</button><aside class="drawer"><div class="drawer-inner"><div class="drawer-head">${CONFIG[currentType].name}详情</div><div class="drawer-who"><div class="drawer-name">${currentType==='intent'?(row.wechat||'-'):(row.name||'-')}</div><div class="drawer-phone">${row.phone}</div></div><div class="drawer-body"><div><section class="section"><h3>基本信息</h3><div class="info-grid"><div class="info"><div class="info-label">${currentType==='intent'?'用户名':'姓名'}</div><div class="info-value">${currentType==='intent'?(row.wechat||'-'):(row.name||'-')}</div></div><div class="info"><div class="info-label">手机号</div><div class="info-value">${row.phone}</div></div><div class="info"><div class="info-label">咨询车辆</div><div class="info-value">${row.vehicle}</div></div>${currentType==='intent'?`<div class="info"><div class="info-label">点击次数</div><div class="info-value">${row.clicks}</div></div>`:''}<div class="info"><div class="info-label">线索跟进人</div><div class="info-value">${row.status==='待跟进'?'':row.owner}</div></div><div class="info"><div class="info-label">跟进状态</div><div class="info-value">${row.status}</div></div><div class="info"><div class="info-label">${CONFIG[currentType].time}</div><div class="info-value">${row.date}</div></div></div></section>${(currentType==='buy'||currentType==='sell')?`<section class="section" style="margin-top:20px"><h3>${CONFIG[currentType].name}列表</h3><table class="related-list"><thead><tr><th>咨询车辆</th><th>创建时间</th><th>跟进状态</th></tr></thead><tbody>${related.map(item=>`<tr><td>${item.vehicle}</td><td>${item.date}</td><td>${item.status}</td></tr>`).join('')}</tbody></table></section>`:''}</div><section class="section"><h3>跟进记录</h3><div class="timeline">${timelineHtml(row)}</div></section></div></div></aside></div>`);
+    }
+    const openDetailWithoutClickRecords = openDetail;
+    openDetail = function(id) { if (currentType!=='intent') { openDetailWithoutClickRecords(id); return; } const row=DATA.intent.find(item=>item.id===id); if (!row) return; openDetailWithoutClickRecords(id); const records=consultationRows(row); document.querySelector('#drawer .drawer-body > div').insertAdjacentHTML('beforeend', `<section class="section" style="margin-top:20px"><h3>咨询记录</h3><table class="related-list"><thead><tr><th>咨询车辆</th><th>咨询时间</th></tr></thead><tbody>${records.map(record=>`<tr><td>${record.vehicle}</td><td>${record.time}</td></tr>`).join('')}</tbody></table></section>`); };
+    function closeDetail() { document.querySelector('#drawer').remove(); }
+    document.addEventListener('click', event => { if (menuId && !event.target.closest('.more')) { menuId=null; render(); } if (!event.target.closest('.el-select-s')) closeAssignDropdowns(); });
+    navRender(); render();
+    // #AI:design:end
+  </script>
+</body>
+</html>
